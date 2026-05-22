@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import {
   Sidebar,
@@ -9,16 +11,42 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { BarChart3, Home, ShoppingCart, FileText, Users, TrendingUp } from 'lucide-react';
+import { BarChart3, Home, ShoppingCart, FileText, Users, TrendingUp, Settings, User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const AppSidebar = () => {
-  const menuItems = [
-    { name: 'Обзор', icon: Home, href: '/' },
-    { name: 'Моя витрина', icon: ShoppingCart, href: '/marketplace' },
-    { name: 'Тендеры', icon: FileText, href: '/tenders' },
-    { name: 'HR-модуль', icon: Users, href: '/hr' },
-    { name: 'Аналитика', icon: BarChart3, href: '/analytics' },
+  const { user, isAuthorized } = useAuth();
+
+  // Базовые пункты меню
+  const baseMenuItems = [
+    { name: 'Главная', icon: Home, href: '/' },
+    { name: 'HoReCa', icon: ShoppingCart, href: '/horeca' },
   ];
+
+  // Дополнительные пункты в зависимости от роли
+  const getRoleSpecificItems = () => {
+    if (!isAuthorized || !user) return [];
+
+    if (user.role === 'exhibitor') {
+      return [
+        { name: 'Админ-панель', icon: Settings, href: '/horeca/admin' },
+        { name: 'Мои продукты', icon: ShoppingCart, href: '/horeca/admin/content/products' },
+        { name: 'Партнеры', icon: Users, href: '/horeca/admin/partners' },
+      ];
+    }
+
+    if (user.role === 'buyer') {
+      return [
+        { name: 'Кабинет закупщика', icon: User, href: '/horeca/buyer/dashboard' },
+        { name: 'Мои тендеры', icon: FileText, href: '/horeca/buyer/dashboard/tenders' },
+        { name: 'Каталог', icon: ShoppingCart, href: '/horeca/discovery' },
+      ];
+    }
+
+    return [];
+  };
+
+  const menuItems = [...baseMenuItems, ...getRoleSpecificItems()];
 
   return (
     <Sidebar className="hidden lg:flex lg:flex-col w-64 shrink-0 bg-brand-blue text-white border-r-0">

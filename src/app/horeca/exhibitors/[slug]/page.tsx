@@ -1,5 +1,7 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 import ExhibitorPageClient, {
   type ExhibitorProfile,
   type ExhibitorNewsItem,
@@ -8,7 +10,9 @@ import {
   getNewsByExhibitorSlug,
   INDUSTRY_TAG_LABELS,
   type NewsItem,
+  type IndustryTag,
 } from '@/constants/newsData';
+import { createClient } from '@/utils/supabase/server';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MOCK-ДАННЫЕ ЭКСПОНЕНТОВ
@@ -752,6 +756,139 @@ const MOCK_EXHIBITORS: ExhibitorProfile[] = [
       },
     ],
   },
+
+  // ─── ООО "ТЕСТ" — демо-экспонент EXPO 365 ─────────────────────────────────
+  // Slug: 'ooo-test'  →  Реф-ссылка: expo365.com/ref/ooo-test
+  // Товары и новости синхронизируются через EcosystemProvider (src/store/ecosystemStore.tsx).
+  // ExhibitorPageClient при slug='ooo-test' читает оперативные данные из контекста,
+  // перекрывая статические нижеуказанные данные (hydration override).
+  {
+    id:          'fff0a1b2-c3d4-5e6f-789a-bcde01234567',
+    slug:        'ooo-test',
+    name:        'ООО «ТЕСТ»',
+    logoUrl:     null,
+    isVerified:  true,
+    category:    'distributor',
+    country:     'Россия',
+    foundedYear: '2018',
+    bio:
+      'ООО «ТЕСТ» — многопрофильный дистрибьютор HoReCa-оборудования и расходных материалов. ' +
+      'Собственная линейка профессиональных эспрессо-машин Barista Pro, авторизованные поставки ' +
+      'зернового кофе с происхождением, а также программы обучения для барист уровня SCA. ' +
+      'Прямые контракты с 12 поставщиками из 8 стран. Доставка по всей России от 3 дней.',
+    regions:    ['Москва', 'СПб', 'Казань', 'Екатеринбург', 'Новосибирск', 'Краснодар'],
+    stats:      { products: 10, equipment: 2, news: 3 },
+    contacts: {
+      phone:   '+7 (495) 123-45-67',
+      email:   'info@ooo-test.ru',
+      website: 'https://ooo-test.ru',
+    },
+    products: [
+      // ── ОБОРУДОВАНИЕ ──────────────────────────────────────────────────────────
+      tp(0,  'ooo-test-p001', 'Эспрессо-машина Barista Pro X3',  'equipment', '₽ 128 000', true,  'Профессиональная 2-групповая машина с двойным бойлером и PID ±0.1°C. Потоком 150+ чашек/день.'),
+      tp(1,  'ooo-test-p002', 'Кофемолка Grind Master 64',       'equipment', '₽ 42 500',  true,  'Бесступенчатая регулировка помола. 64 мм плоские жернова. Прямой привод без редуктора.'),
+      // ── КОФЕ ──────────────────────────────────────────────────────────────────
+      tp(2,  'ooo-test-p003', 'Арабика Эфиопия Иргачеффе',        'coffee',    '₽ 2 800 / кг', false, 'Floral-профиль. Ягоды, жасмин, цитрус. Обжарка: средняя. Моносорт.'),
+      tp(0,  'ooo-test-p004', 'HoReCa Blend №7',                  'coffee',    '₽ 1 950 / кг', false, 'Купаж 70% арабика / 30% робуста. Крем устойчив при 75°C.'),
+      // ── ЧАЙ ───────────────────────────────────────────────────────────────────
+      tp(1,  'ooo-test-p008', 'Зелёный чай Сенча Premium',        'tea',       '₽ 1 400 / 500г', true, 'Первый сбор, первый класс. Пониженное содержание кофеина. Япония.', GRAD_TEA),
+      // ── ПОСУДА ────────────────────────────────────────────────────────────────
+      tp(2,  'ooo-test-p005', 'Набор каппинговых чаш (12 шт)',    'tableware', '₽ 8 400',       false, 'Фарфор 240 мл. Стандарт SCA Cupping Protocol. В комплекте 12 чаш + блюдца.', GRAD_TABLEWARE),
+      tp(0,  'ooo-test-p010', 'Стакан термо Travel 350ml',        'tableware', '₽ 1 800 / шт',  true,  'Двойные стенки нерж. сталь 304. Сохраняет температуру 8 ч. Брендинг под заказ.', GRAD_TABLEWARE),
+      // ── ОБУЧЕНИЕ ──────────────────────────────────────────────────────────────
+      tp(1,  'ooo-test-p006', 'Тренинг "Латте-арт Мастер"',       'training',  '₽ 12 000 / чел', true, '8-часовой интенсив. Группа до 8 человек. Сертификат EXPO 365.', GRAD_TRAINING),
+      // ── СЕРВИС ────────────────────────────────────────────────────────────────
+      tp(2,  'ooo-test-p009', 'Сервисный контракт Full-Service',  'service',   '₽ 18 000 / мес', false, 'Ежемесячное ТО + экстренный выезд 4ч. Покрывает до 3 единиц оборудования.', GRAD_SERVICE),
+      // ── РАСХОДНЫЕ МАТЕРИАЛЫ ───────────────────────────────────────────────────
+      tp(0,  'ooo-test-p007', 'Фильтр-картридж BWT Bestmax XL',  'consumables','₽ 3 200 / шт',  false, 'Ресурс 10 000 л. Для кофемашин до 100 л/день. Совместим с E61 группами.', GRAD_CONSUMABLE),
+    ],
+    news: [
+      {
+        id:          'ooo-test-local-news-001',
+        type:        'news' as const,
+        title:       'Открыт шоу-рум в Москве — запись на визит',
+        description: 'Новый шоу-рум ООО «ТЕСТ» в центре Москвы. Живая демонстрация Barista Pro X3 и полного ассортимента.',
+        content:
+          'ООО «ТЕСТ» открывает первый шоу-рум в Москве (м. Курская, ул. Нижняя Сыромятническая, 10).\n\n' +
+          'В шоу-руме представлено:\n' +
+          '• Barista Pro X3 в рабочем режиме — живая демонстрация\n' +
+          '• Полный ассортимент зернового кофе с каппинг-станцией\n' +
+          '• Демозона оборудования BWT\n\n' +
+          'Режим работы: Пн–Пт 10:00–19:00\n' +
+          'Запись на демонстрацию: через форму на витрине или по телефону.',
+        category:    'Оборудование',
+        badge:       'new' as const,
+        publishedAt: '2026-05-08',
+        span:        2 as const,
+      },
+      {
+        id:          'ooo-test-local-news-002',
+        type:        'news' as const,
+        title:       'Новая партия Арабики Эфиопия — лимитированный лот 2025/2026',
+        description: 'Получена свежая обжарка лимитированного лота Иргачеффе G1. Только 200 кг. Для B2B от 20 кг.',
+        content:
+          'Сезонный лот Ethiopia Yirgacheffe G1 — обжарка 28 апреля 2026.\n\n' +
+          'Характеристики:\n' +
+          '• Profil: Floral, Bergamot, Jasmine, Blueberry\n' +
+          '• Обжарка: Light-Medium\n' +
+          '• Влажность: 10.5%\n' +
+          '• Оценка SCA: 89 баллов\n\n' +
+          'Лот ограничен — 200 кг. Доступен для заказа от 20 кг.\n' +
+          'Отгрузка в течение 3 рабочих дней.',
+        category:    'Кофе',
+        badge:       'new' as const,
+        publishedAt: '2026-05-03',
+        span:        1 as const,
+      },
+      {
+        id:          'ooo-test-local-news-003',
+        type:        'news' as const,
+        title:       'Сертификация SCA Barista Skills — набор на июнь 2026',
+        description: 'Открыт набор на сертификационный курс SCA Barista Skills Foundation. Очный формат, Москва.',
+        content:
+          'Программа сертификации SCA Barista Skills Foundation.\n\n' +
+          'Формат: очный, 2 дня\n' +
+          'Даты: 14–15 июня 2026\n' +
+          'Место: Москва, учебный центр ООО «ТЕСТ»\n' +
+          'Стоимость: 28 000 ₽ / чел. (включая регистрационный взнос SCA)\n\n' +
+          'Программа:\n' +
+          '• Теория: зерно, обжарка, экстракция\n' +
+          '• Практика: эспрессо, молочные напитки\n' +
+          '• Экзамен и сертификат SCA\n\n' +
+          'Группа до 8 человек. Запись через витрину или по e-mail.',
+        category:    'Обучение',
+        badge:       'new' as const,
+        publishedAt: '2026-04-25',
+        span:        1 as const,
+      },
+    ],
+    recommendations: [
+      {
+        partnerId:  'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+        slug:       'espresso-italia',
+        logoUrl:    '/assets/brands/la-marzocco.svg',
+        name:       'Espresso Italia',
+        reason:     'Дистрибьютор La Marzocco',
+        isReferral: false,
+      },
+      {
+        partnerId:  'exp-rational-rec',
+        slug:       'rational-russia',
+        logoUrl:    '/assets/brands/rational.svg',
+        name:       'RATIONAL Russia',
+        reason:     'Кухонное оборудование',
+        isReferral: false,
+      },
+      {
+        partnerId:  'exp-ecolab-rec',
+        slug:       'ecolab-russia',
+        logoUrl:    '/assets/brands/ecolab.svg',
+        name:       'Ecolab Russia',
+        reason:     'Гигиена и уход',
+        isReferral: false,
+      },
+    ],
+  },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -853,6 +990,60 @@ export async function generateMetadata(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SUPABASE: ПОЛУЧЕНИЕ ПОСЛЕДНИХ 3 НОВОСТЕЙ ЭКСПОНЕНТА
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fetches up to 3 latest **published** news items for the given exhibitor
+ * from the Supabase `news` table.
+ *
+ * Security: RLS policy on `news` table allows public `SELECT` for `status = 'published'`.
+ * This function uses the anonymous Supabase client (no auth required).
+ *
+ * Returns an empty array on any error — the caller falls back to mock data.
+ *
+ * @param exhibitorId — UUID of the exhibitor (from `ExhibitorProfile.id`)
+ */
+async function fetchSupabaseNews(exhibitorId: string): Promise<ExhibitorNewsItem[]> {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+
+    const { data, error } = await supabase
+      .from('news')
+      .select('id, title, content, image_url, promo_type, category, publish_date')
+      .eq('exhibitor_id', exhibitorId)
+      .eq('status', 'published')
+      .order('publish_date', { ascending: false })
+      .limit(3);
+
+    if (error) {
+      // Graceful degradation — table may not exist yet in dev
+      console.warn('[ExhibitorPage] Supabase news fetch error:', error.message);
+      return [];
+    }
+
+    if (!data || data.length === 0) return [];
+
+    return data.map((row): ExhibitorNewsItem => ({
+      id:          row.id,
+      type:        'news',
+      title:       row.title,
+      description: (row.content ?? '').slice(0, 140),
+      content:     row.content ?? '',
+      category:    INDUSTRY_TAG_LABELS[row.category as Exclude<IndustryTag, 'all'>] ?? row.category,
+      badge:       row.promo_type === 'sale' ? 'sale' : 'new',
+      mediaUrl:    row.image_url ?? undefined,
+      publishedAt: row.publish_date,
+    }));
+  } catch (err) {
+    // Supabase not configured / network error — silent fallback
+    console.warn('[ExhibitorPage] fetchSupabaseNews failed:', err);
+    return [];
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // СЕРВЕРНЫЙ КОМПОНЕНТ СТРАНИЦЫ
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -860,17 +1051,74 @@ export async function generateMetadata(
  * Динамический роут `/horeca/exhibitors/[slug]`.
  *
  * Server Component — получает данные, передаёт в Client Component.
- * При отсутствии экспонента — 404 через `notFound()`.
+ *
+ * Логика новостей (приоритет):
+ *   1. Supabase `news` (latest 3 published) — если таблица доступна
+ *   2. Fallback: mock-данные из `getExhibitorBySlug` + `NEWS_ITEMS` (константы)
+ *
+ * При отсутствии профиля — 404 через `notFound()`.
  */
+/**
+ * Безопасная роль пользователя для RBAC.
+ *
+ * SECURITY: роль читается из `app_metadata` (server-editable),
+ * НИКОГДА из `user_metadata` (user-editable, небезопасна для авторизации).
+ *
+ * Возможные значения:
+ *   'visitor'        — зарегистрированный посетитель / байер
+ *   'exhibitor'      — верифицированный экспонент
+ *   'private_person' — частное лицо (view-only, без B2B-диалогов)
+ *   null             — анонимный пользователь (не авторизован)
+ */
+type UserRole = 'visitor' | 'exhibitor' | 'private_person' | null;
+
 export default async function ExhibitorPage(
   { params }: { params: Promise<{ slug: string }> },
 ) {
-  const { slug } = await params;
+  const { slug }  = await params;
   const profile   = getExhibitorBySlug(slug);
 
   if (!profile) {
     notFound();
   }
 
-  return <ExhibitorPageClient profile={profile} />;
+  // ── Supabase: auth session + user role ───────────────────────────────────
+  //
+  // getUser() делает сетевой вызов к Supabase Auth Server — всегда актуален.
+  // Не используем getSession() — JWT может быть устаревшим до refresh.
+  const cookieStore    = await cookies();
+  const supabase       = createClient(cookieStore);
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Роль из app_metadata (устанавливается только серверным кодом / service_role)
+  const userRole: UserRole =
+    (user?.app_metadata?.role as UserRole) ?? null;
+
+  // UUID текущего пользователя для sender_id при отправке сообщения
+  const userId: string | null = user?.id ?? null;
+
+  // ── Supabase news (latest 3 published for this exhibitor) ────────────────
+  // Falls back silently to mock data if Supabase is unreachable / table missing.
+  const supabaseNews = await fetchSupabaseNews(profile.id);
+
+  // ── Merge strategy ────────────────────────────────────────────────────────
+  // If Supabase returns results — use them directly (de-dup already done by DB).
+  // Otherwise — keep the merged mock+feed news from getExhibitorBySlug.
+  const resolvedProfile: ExhibitorProfile = supabaseNews.length > 0
+    ? { ...profile, news: supabaseNews }
+    : profile;
+
+  return (
+    <Suspense fallback={
+      <div className="mt-16 flex h-[calc(100vh-64px)] items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-[#0B2B5E]/20 border-t-[#0B2B5E] animate-spin" />
+      </div>
+    }>
+      <ExhibitorPageClient
+        profile={resolvedProfile}
+        userRole={userRole}
+        userId={userId}
+      />
+    </Suspense>
+  );
 }

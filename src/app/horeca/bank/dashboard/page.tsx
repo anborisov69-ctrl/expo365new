@@ -204,7 +204,7 @@ function ApplicationCard({ app, onSetStatus }: AppCardProps) {
             }}
           >
             <p className="text-xs font-black text-slate-500 uppercase tracking-wider mb-1.5">
-              💬 Комментарий байера
+              Комментарий байера
             </p>
             {app.comment}
           </div>
@@ -232,7 +232,7 @@ function ApplicationCard({ app, onSetStatus }: AppCardProps) {
         {showCommentBox && (
           <div className="mb-4 p-4 rounded-xl border" style={{ borderColor: 'rgba(11,43,94,0.14)', backgroundColor: '#fafafa' }}>
             <p className="text-sm font-black mb-3" style={{ color: '#0B2B5E' }}>
-              {pendingStatus === 'pre_approved' ? '✅ Предварительно одобрено' : '❌ Отказ'} — добавить комментарий:
+              {pendingStatus === 'pre_approved' ? 'Предварительно одобрено' : 'Отказ'} — добавить комментарий:
             </p>
             <textarea
               value={comment}
@@ -718,7 +718,7 @@ function BankTenderCard({ tender, onOffer }: TenderCardProps) {
           <div className="flex-1 min-w-0">
             <p className="text-sm text-slate-600 font-medium truncate">{tender.category}</p>
             {tender.buyerRegion && (
-              <p className="text-sm text-slate-400 mt-0.5">📍 {tender.buyerRegion}</p>
+              <p className="text-sm text-slate-400 mt-0.5">{tender.buyerRegion}</p>
             )}
           </div>
           <div className="text-right flex-shrink-0">
@@ -825,7 +825,7 @@ function TendersPanel({ bank }: TendersPanelProps) {
       prev.map((t) => t.id === tender.id ? { ...t, hasOffer: true } : t)
     );
     setOfferTarget(null);
-    setSuccessMsg(`✅ Предложение для «${tender.title}» отправлено байеру!`);
+    setSuccessMsg(`Предложение для «${tender.title}» отправлено байеру!`);
     setTimeout(() => setSuccessMsg(null), 4_000);
   }
 
@@ -951,7 +951,7 @@ function BIPanel() {
         style={{ borderColor: 'rgba(11,43,94,0.20)' }}
       >
         <h3 className="text-[22px] font-black mb-5" style={{ color: '#0B2B5E' }}>
-          🏆 Топ категорий оборудования в заявках
+          Топ категорий оборудования в заявках
         </h3>
         <div className="flex flex-col gap-3">
           {stats.topCategories.map((cat, i) => {
@@ -983,7 +983,7 @@ function BIPanel() {
       <div>
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-[22px] font-black" style={{ color: '#0B2B5E' }}>
-            🔥 Горячие клиенты
+            Горячие клиенты
           </h3>
           <span
             className="inline-flex items-center px-3 py-1 rounded-full text-sm font-black"

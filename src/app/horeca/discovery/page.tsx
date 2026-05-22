@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import DiscoveryClient, { type Exponent } from './DiscoveryClient';
 
@@ -12,6 +13,25 @@ export const metadata: Metadata = {
 // и при переходе на страницу отрасли /horeca/discovery?industry={id}.
 
 const EXPONENTS: Exponent[] = [
+  // ── ООО «ТЕСТ» — Демонстрационный экспонент (синхронизирован с companiesData + ecosystemStore) ──
+  // isB2BPartner: true — активно использует B2B-рефералы → показывает бейдж "Партнёр платформы" при hover
+  {
+    id:           'exp-ooo-test',
+    name:         'ТЕСТ',
+    slug:         'ooo-test',
+    mainLogo:     null,
+    brands: [
+      { name: 'Dalla Corte', logoUrl: '/assets/brands/dalla-corte.svg', country: 'Италия'   },
+      { name: 'Mahlkoenig',  logoUrl: '/assets/brands/mahlkoenig.svg',  country: 'Германия' },
+      { name: 'Acaia',       logoUrl: '/assets/brands/acaia.svg',       country: 'Тайвань'  },
+    ],
+    isOnline:     true,
+    category:     'distributor',
+    industry:     'beverages',
+    country:      'Россия',
+    isB2BPartner: true,
+  },
+
   {
     id:       'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     name:     'Espresso Italia',
@@ -142,6 +162,68 @@ const EXPONENTS: Exponent[] = [
     category: 'manufacturer',
     industry: 'equipment',
   },
+
+  // ── Финансовые партнёры (FINANCIAL_INSTITUTION) ───────────────────────────────
+  // Отображаются при выборе фильтра «Финансы и лизинг» в Discovery Sidebar.
+  // category: 'financial_institution' → зелёный бейдж «ФИН. ПАРТНЁР» на PavilionCard.
+  {
+    id:       'fin-vtb-0001-0000-0000-000000000001',
+    name:     'ВТБ Банк',
+    slug:     'fin-vtb',
+    mainLogo: null,
+    brands: [
+      { name: 'Лизинг HoReCa', country: 'Россия' },
+      { name: 'Кредитование',  country: 'Россия' },
+      { name: 'РКО',           country: 'Россия' },
+    ],
+    isOnline:  true,
+    category:  'financial_institution',
+    industry:  'finance',
+    country:   'Россия',
+  },
+  {
+    id:       'fin-tochka-0001-0000-0000-000000000002',
+    name:     'Точка Банк',
+    slug:     'fin-tochka',
+    mainLogo: null,
+    brands: [
+      { name: 'Лизинг МСБ',   country: 'Россия' },
+      { name: 'Кредит 1 день', country: 'Россия' },
+    ],
+    isOnline:  true,
+    category:  'financial_institution',
+    industry:  'finance',
+    country:   'Россия',
+  },
+  {
+    id:       'fin-arenza-0001-0000-0000-000000000003',
+    name:     'Аренза',
+    slug:     'fin-arenza',
+    mainLogo: null,
+    brands: [
+      { name: 'Лизинг оборудования', country: 'Россия' },
+      { name: 'Рассрочка HoReCa',    country: 'Россия' },
+    ],
+    isOnline:  true,
+    category:  'financial_institution',
+    industry:  'finance',
+    country:   'Россия',
+  },
+  {
+    id:       'fin-alfa-0001-0000-0000-000000000004',
+    name:     'Альфа-Банк',
+    slug:     'fin-alfa',
+    mainLogo: null,
+    brands: [
+      { name: 'Бизнес-лизинг', country: 'Россия' },
+      { name: 'РКО Бизнес',    country: 'Россия' },
+      { name: 'Факторинг',     country: 'Россия' },
+    ],
+    isOnline:  true,
+    category:  'financial_institution',
+    industry:  'finance',
+    country:   'Россия',
+  },
 ];
 
 // ─── Страница ─────────────────────────────────────────────────────────────────
@@ -201,7 +283,16 @@ export default async function DiscoveryPage({ searchParams }: DiscoveryPageProps
         backgroundSize: '40px 40px',
       }}
     >
-      <DiscoveryClient exponents={baseExponents} contextLabel={contextLabel} />
+      <Suspense fallback={
+        <div className="mt-16 flex h-[calc(100vh-64px)] items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-[#0B2B5E]/20 border-t-[#0B2B5E] animate-spin" />
+            <p className="text-sm text-slate-400 font-medium">Загрузка витрины…</p>
+          </div>
+        </div>
+      }>
+        <DiscoveryClient exponents={baseExponents} contextLabel={contextLabel} />
+      </Suspense>
     </main>
   );
 }

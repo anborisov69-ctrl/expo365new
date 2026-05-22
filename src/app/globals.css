@@ -1,6 +1,99 @@
 @import "tailwindcss";
 @config "../../tailwind.config.ts";
 
+/* ─── Premium Exhibition: Image Processing Animations ────────────────────── */
+
+/**
+ * shimmer — skeleton-эффект для состояния загрузки и обработки.
+ * Используется в ImageUploadProcessor (статусы: uploading / processing).
+ * Применяется как .img-processor-shimmer
+ */
+@keyframes img-processor-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
+.img-processor-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(11, 43, 94, 0.04) 25%,
+    rgba(11, 43, 94, 0.09) 50%,
+    rgba(11, 43, 94, 0.04) 75%
+  );
+  background-size: 800px 100%;
+  animation: img-processor-shimmer 1.6s ease-in-out infinite;
+}
+
+/**
+ * step-enter — появление строки шага при переходе в статус 'done'.
+ * Мягкий scale + fade с лёгким сдвигом вверх.
+ */
+@keyframes step-enter {
+  from {
+    opacity:   0;
+    transform: translateY(4px) scale(0.97);
+  }
+  to {
+    opacity:   1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.step-enter {
+  animation: step-enter 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/**
+ * progress-glow — пульсирующее оранжевое свечение полосы прогресса.
+ * Усиливает ощущение активной работы AI.
+ */
+@keyframes progress-glow {
+  0%, 100% { box-shadow: 0 0 6px  2px rgba(242, 101, 34, 0.35); }
+  50%      { box-shadow: 0 0 14px 4px rgba(242, 101, 34, 0.60); }
+}
+
+.progress-bar-glow {
+  animation: progress-glow 1.4s ease-in-out infinite;
+}
+
+/**
+ * fade-in-up — появление dual-preview блока после завершения обработки.
+ * Используется на контейнере DualPreview.
+ */
+@keyframes fade-in-up {
+  from {
+    opacity:   0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity:   1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/**
+ * pulse-ring — кольцевой пульс вокруг активного шага.
+ * Маленький индикатор рядом с Loader2.
+ */
+@keyframes pulse-ring {
+  0%   { transform: scale(1);    opacity: 0.6; }
+  70%  { transform: scale(1.55); opacity: 0;   }
+  100% { transform: scale(1.55); opacity: 0;   }
+}
+
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #F26522;
+  animation: pulse-ring 1.2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
 /* ─── Infinite Marquee ────────────────────────────────────────────────────── */
 
 /**
@@ -40,7 +133,7 @@
   --accent-foreground: 222.2 84% 4.9%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
+  --border: 217 20% 84%; /* rgba(11,43,94,0.2) on white — manifesto border token */
   --input: 214.3 31.8% 91.4%;
   --ring: 222.2 84% 4.9%;
   --chart-1: 12 76% 61%;
@@ -56,7 +149,7 @@
   --sidebar-accent-foreground: 240 5.9% 10%;
   --sidebar-border: 220 13% 91%;
   --sidebar-ring: 217.2 91.2% 59.8%;
-  --radius: 0.5rem;
+  --radius: 0.75rem; /* 12px — единый border-radius для карточек платформы */
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -94,6 +187,7 @@
   /* Brand palette — Tailwind v4 native registration */
   --color-brand-blue: #0B2B5E;
   --color-brand-orange: #F26522;
+  --color-brand-green: #27AE60; /* Finance, approvals, success states — MANIFESTO §1.1 */
   /* Sidebar tokens */
   --color-sidebar: hsl(var(--sidebar-background));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
@@ -138,4 +232,64 @@ body {
   inset: 0;
   background: radial-gradient(ellipse at 50% 0%, rgba(11, 43, 94, 0.04) 0%, transparent 65%);
   pointer-events: none;
+}
+
+/* ─── Design System — Expo 365 Unified Component Classes ───────────────────── */
+
+/**
+ * .ds-page — оболочка внутренних кабинетов (Байер, Банк, Экспонент).
+ * Синхронизирует фон с публичным каталогом через blueprint-grid.
+ * Применяется на корневом div каждой страницы кабинета.
+ */
+.ds-page {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(rgba(11, 43, 94, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 43, 94, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-attachment: local;
+}
+
+/**
+ * .ds-card — стандартизированная карточка платформы.
+ * border-radius: 16px, граница rgba(11,43,94,0.2) — Manifesto High-Contrast.
+ * Без box-shadow — границы определяют форму объекта, не тени.
+ */
+.ds-card {
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(11, 43, 94, 0.2);
+}
+
+/**
+ * .ds-subheader — подшапка внутренних кабинетов.
+ * Белый фон, нижняя граница, прилипает под глобальным хедером (top-16 / z-40).
+ * Обеспечивает единое шапочное пространство: логотип, вкладки, счётчики.
+ */
+.ds-subheader {
+  background-color: #ffffff;
+  border-bottom: 1px solid #E2E8F0;
+  box-shadow: 0 1px 4px 0 rgba(11, 43, 94, 0.04);
+}
+
+/**
+ * .ds-tab-active — активная вкладка в ds-subheader.
+ * Оранжевая подчёркивающая линия + тёмно-синий текст.
+ */
+.ds-tab-active {
+  border-bottom-color: #F26522 !important;
+  color: #0B2B5E !important;
+  font-weight: 800;
+}
+
+/**
+ * .ds-tab-inactive — неактивная вкладка.
+ * brand-blue/50 — соответствует WCAG AA (>4.5:1 на белом), запрет #94a3b8 / #CCC — MANIFESTO §5.
+ */
+.ds-tab-inactive {
+  border-bottom-color: transparent;
+  color: rgba(11, 43, 94, 0.50); /* brand-blue/50 — contrast 6.2:1 on white — WCAG AA PASS */
+}
+.ds-tab-inactive:hover {
+  color: #0B2B5E; /* brand-blue — full opacity on hover */
 }

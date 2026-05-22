@@ -64,6 +64,7 @@ const config: Config = {
         },
         "brand-blue": "#0B2B5E",
         "brand-orange": "#F26522",
+        "brand-green": "#27AE60",
       },
       borderRadius: {
         lg: "var(--radius)",

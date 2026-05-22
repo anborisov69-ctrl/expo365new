@@ -106,7 +106,7 @@ export default function ProductCard({
       className={[
         'group relative flex flex-col overflow-hidden',
         'aspect-square',
-        'bg-white border border-[#0B2B5E]/10 rounded-xl',
+        'bg-white border border-[#0B2B5E]/20 rounded-2xl',
         'transition-all duration-200 select-none cursor-pointer',
         isAdmin
           ? 'hover:border-[#0B2B5E]/40 hover:shadow-sm'

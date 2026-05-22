@@ -48,7 +48,7 @@ export interface AuthUser {
   email:       string;
   displayName: string;
   /** Роль пользователя в multi-tenant системе */
-  role:        'buyer' | 'exhibitor' | 'admin' | 'partner';
+  role:        'buyer' | 'exhibitor' | 'admin' | 'partner' | 'private_person';
   /**
    * Связка с партнёрской организацией для персональных предложений.
    * Если статус "Приглашённый клиент" - указывается организация (например: 'ooo-test')
@@ -69,7 +69,7 @@ export interface UseAuthReturn {
   /**
    * Устанавливает конкретную роль для тестирования
    */
-  setTestRole: (role: 'EXHIBITOR' | 'BUYER') => void;
+  setTestRole: (role: 'EXHIBITOR' | 'BUYER' | 'PRIVATE_PERSON') => void;
   /**
    * Выход из тестового режима
    */
@@ -97,6 +97,12 @@ const MOCK_USERS = {
     role:        'buyer' as const,
     isPartnerOf: 'ooo-test',
   },
+  PRIVATE_PERSON: {
+    id:          'private_person_1',
+    email:       'jobseeker@expo365.ru',
+    displayName: 'Иван Петров',
+    role:        'private_person' as const,
+  },
 } as const;
 
 /** Дефолтный mock-пользователь для обратной совместимости */
@@ -114,7 +120,7 @@ export function useAuth(): UseAuthReturn {
     try {
       const stored = localStorage.getItem(MOCK_AUTH_KEY);
       if (stored === 'true') {
-        const testRole = localStorage.getItem('expo365_test_role') as 'EXHIBITOR' | 'BUYER' | null;
+        const testRole = localStorage.getItem('expo365_test_role') as 'EXHIBITOR' | 'BUYER' | 'PRIVATE_PERSON' | null;
         const mockUser = testRole ? MOCK_USERS[testRole] : MOCK_USER;
         setIsAuthorized(true);
         setUser(mockUser as AuthUser);
@@ -143,7 +149,7 @@ export function useAuth(): UseAuthReturn {
   }, []);
 
   /** Устанавливает тестовую роль пользователя */
-  const setTestRole = useCallback((role: 'EXHIBITOR' | 'BUYER') => {
+  const setTestRole = useCallback((role: 'EXHIBITOR' | 'BUYER' | 'PRIVATE_PERSON') => {
     try {
       const mockUser = MOCK_USERS[role];
       localStorage.setItem(MOCK_AUTH_KEY, 'true');

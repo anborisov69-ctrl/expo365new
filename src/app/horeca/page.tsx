@@ -5,7 +5,7 @@ import { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Breadcrumbs from '@/components/Breadcrumbs';
-import NewsFeedPanel from '@/components/NewsFeedPanel';
+import { BANKS } from '@/data/banksData';
 
 // ─── Типы ────────────────────────────────────────────────────────────────────
 
@@ -19,17 +19,9 @@ interface HorecaCategory {
 }
 
 // ─── Каталог отраслей ────────────────────────────────────────────────────────
-//
-// Консолидация по ТЗ:
-//   • Удалены: «Кофе», «Чай», «Оборудование для горячих напитков».
-//   • Создана единая плашка «ГОРЯЧИЕ НАПИТКИ» (агрегирует все три категории).
-//
-//   • Удалена: «Продукты и напитки».
-//   • Созданы ДВЕ плашки: «ПРОДУКТЫ» + «ХОЛОДНЫЕ НАПИТКИ».
 
 const HORECA_CATEGORIES: HorecaCategory[] = [
   {
-    // Объединение: Кофе (124) + Чай (86) + Оборудование для горячих напитков (152)
     id: '1a2b3c4d-0000-4a5b-8c9d-0e1f2a3b4c5d',
     title: 'Горячие напитки',
     icon: 'Coffee',
@@ -38,7 +30,6 @@ const HORECA_CATEGORIES: HorecaCategory[] = [
     keywords: ['кофе', 'чай', 'какао', 'горячие напитки', 'кофемашины', 'оборудование'],
   },
   {
-    // Выделено из бывшей плашки «Продукты и напитки»
     id: '2b3c4d5e-0000-5b6c-9d0e-1f2a3b4c5d6e',
     title: 'Продукты',
     icon: 'ShoppingBasket',
@@ -47,7 +38,6 @@ const HORECA_CATEGORIES: HorecaCategory[] = [
     keywords: ['продукты', 'еда', 'мясо', 'молоко', 'хлеб', 'овощи'],
   },
   {
-    // Выделено из бывшей плашки «Продукты и напитки»
     id: '3c4d5e6f-0000-6c7d-0e1f-2a3b4c5d6e7f',
     title: 'Холодные напитки',
     icon: 'GlassWater',
@@ -124,7 +114,7 @@ export default function HorecaCatalogPage() {
   return (
     /*
      * Blueprint-фон: белый лист с тонкой сеткой #0B2B5E при 6% прозрачности.
-     * min-h-screen обеспечивает полный экран (sticky панель работает корректно).
+     * Правая панель «Новинки» удалена — полноширинный одноколоночный layout.
      */
     <main
       className="flex-1 min-h-screen bg-white"
@@ -136,153 +126,280 @@ export default function HorecaCatalogPage() {
         backgroundSize: '40px 40px',
       }}
     >
-      {/*
-       * Flex-обертка: CENTER (flex-1) + RIGHT (w-[380px] sticky).
-       * pt-32/pt-28 — отступ под фиксированный Header (h-16 = 64px).
-       * items-start необходим для корректной работы sticky на RIGHT-панели.
-       */}
-      <div className="flex items-start pt-20">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-12">
 
-        {/* ══════════════════════════════════════════════════════════════════
-            CENTER — ОТРАСЛЕВЫЕ ПЛАШКИ (flex-1, 8 колонок)
-            ══════════════════════════════════════════════════════════════════ */}
-        <div className="flex-1 min-w-0 p-4 sm:p-6 pt-0">
+        {/* ── Хедер страницы ── */}
+        <div className="mb-8">
+          <Breadcrumbs items={breadcrumbItems} />
 
-          {/* ── Хедер страницы ── */}
-          <div className="mb-8">
-            <Breadcrumbs items={breadcrumbItems} />
+          <h1
+            className="mt-6 text-2xl font-bold"
+            style={{ color: '#0B2B5E' }}
+          >
+            Отраслевой каталог: HoReCa
+          </h1>
 
-            <h1 className="mt-6 text-2xl font-bold" style={{ color: '#0B2B5E' }}>
-              Отраслевой каталог: HoReCa
-            </h1>
-
-            {/* Поиск */}
-            <div className="max-w-2xl mx-auto mb-10 mt-6 relative flex items-center">
-              <LucideIcons.Search
-                className="absolute left-4 z-10 pointer-events-none"
-                size={20}
-                strokeWidth={1.5}
-                color="#0B2B5E"
-              />
-              <input
-                type="text"
-                placeholder="Поиск по категориям..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className={[
-                  'w-full h-12 pl-12 pr-4',
-                  'bg-white border-2 border-[#0B2B5E] rounded-lg',
-                  'text-[#0B2B5E] placeholder:text-slate-400',
-                  'focus:outline-none focus:border-[#F26522]',
-                  'transition-colors duration-150',
-                ].join(' ')}
-              />
-            </div>
+          {/* Поиск */}
+          <div className="max-w-2xl mx-auto mb-0 mt-6 relative flex items-center">
+            <LucideIcons.Search
+              className="absolute left-4 z-10 pointer-events-none"
+              size={20}
+              strokeWidth={1.5}
+              color="#0B2B5E"
+              aria-hidden="true"
+            />
+            <input
+              type="text"
+              placeholder="Поиск по категориям..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={[
+                'w-full h-12 pl-12 pr-4',
+                'bg-white border-2 border-[#0B2B5E] rounded-lg',
+                'focus:outline-none focus:border-[#F26522]',
+                'transition-colors duration-150',
+              ].join(' ')}
+              style={{
+                color: '#0B2B5E',
+                fontWeight: 500,
+              }}
+            />
           </div>
-
-          {/* ── 8-КОЛОНОЧНАЯ СЕТКА ОТРАСЛЕЙ ── */}
-          {/*
-           * Структура колонок:
-           *   grid-cols-2          — мобильные (< sm): по 2 тайла в ряду
-           *   sm:grid-cols-4       — планшеты         : по 4 тайла в ряду
-           *   lg:grid-cols-8       — десктоп (СТРОГО 8 колонок)
-           *
-           * Каждый тайл: col-span-1 | sm:col-span-1 | lg:col-span-2
-           *   → на lg+: 4 тайла в ряду (8 колонок / 2 = 4)
-           */}
-          {filteredCategories.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 lg:gap-5">
-              {filteredCategories.map((category) => {
-                const IconComponent = LucideIcons[category.icon] as LucideIcon;
-
-                return (
-                  <Link
-                    key={category.id}
-                    href={`/horeca/discovery?category=${encodeURIComponent(category.slug)}`}
-                    className="col-span-1 lg:col-span-2 no-underline group focus:outline-none"
-                    aria-label={`${category.title} — ${category.exhibitors} экспонентов`}
-                  >
-                    {/*
-                     * Плашка отрасли — aspect-square (строгий квадрат).
-                     * Рамка: border border-[#0B2B5E]/20 rounded-xl.
-                     * Hover: рамка → #F26522, лёгкий подъём, тень.
-                     */}
-                    <div
-                      className={[
-                        'aspect-square flex flex-col items-center justify-center',
-                        'px-3 py-4 text-center rounded-xl',
-                        'bg-white',
-                        'border border-[#0B2B5E]/20',
-                        'shadow-[0_2px_12px_rgba(11,43,94,0.06)]',
-                        'transition-all duration-250 ease-out',
-                        'group-hover:border-[#F26522]',
-                        'group-hover:shadow-[0_8px_32px_rgba(242,101,34,0.18)]',
-                        'group-hover:-translate-y-1',
-                        'group-focus-visible:ring-2 group-focus-visible:ring-[#F26522]/50',
-                      ].join(' ')}
-                    >
-                      {/* Иконка */}
-                      <div
-                        className="flex-shrink-0 transition-transform duration-250 group-hover:scale-110"
-                        style={{ color: '#0B2B5E' }}
-                        aria-hidden="true"
-                      >
-                        <IconComponent size={44} strokeWidth={1.5} />
-                      </div>
-
-                      {/* Название */}
-                      <h2
-                        className="mt-3 text-sm font-semibold leading-tight text-center line-clamp-2"
-                        style={{ color: '#0B2B5E' }}
-                      >
-                        {category.title}
-                      </h2>
-
-                      {/* Счётчик экспонентов — оранжевый */}
-                      <p
-                        className="mt-1.5 text-xs font-bold leading-none"
-                        style={{ color: '#F26522' }}
-                      >
-                        Экспонентов: {category.exhibitors}
-                      </p>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          ) : (
-            /* Пустое состояние */
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                style={{ backgroundColor: 'rgba(11,43,94,0.06)' }}
-              >
-                <LucideIcons.Search size={28} strokeWidth={1.5} color="#0B2B5E" aria-hidden="true" />
-              </div>
-              <p className="text-base font-semibold" style={{ color: '#0B2B5E' }}>
-                Категории не найдены
-              </p>
-              <p className="text-sm text-slate-400 mt-1">Попробуйте другой поисковый запрос</p>
-            </div>
-          )}
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════
-            RIGHT — НОВИНКИ И СОБЫТИЯ (w-[380px], sticky)
-            Видна на lg+ (desktop). Дублирует ленту с Discovery-дашборда.
-            Тёмный фон #0B2B5E, отраслевые фильтры (ТЗ п.4 + п.5).
-            sticky top-20: прилипает на 80px от верха (под h-16 header).
+            ФИНАНСОВЫЕ ПАРТНЁРЫ — поднят наверх, до сетки отраслей
+            Зелёная метка #27AE60 «Финансовый партнёр».
             ══════════════════════════════════════════════════════════════════ */}
-        <aside
-          className="hidden lg:block w-[380px] flex-shrink-0 sticky top-6 self-start mr-4 rounded-xl overflow-hidden"
-          style={{
-            maxHeight: 'calc(100vh - 30px)',
-            boxShadow: '0 4px 32px rgba(11,43,94,0.12)',
-          }}
-          aria-label="Новинки и события HoReCa"
-        >
-          <NewsFeedPanel variant="sticky" />
-        </aside>
+        <section className="mb-10" aria-label="Финансовые партнёры выставки">
+
+          {/* Заголовок секции */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              {/* Зелёная метка-пилюля */}
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wide"
+                style={{
+                  backgroundColor: 'rgba(39,174,96,0.12)',
+                  color: '#27AE60',
+                  border: '1px solid rgba(39,174,96,0.25)',
+                }}
+              >
+                {/* Иконка банка */}
+                <svg
+                  width="9" height="9" viewBox="0 0 24 24"
+                  fill="none" stroke="currentColor" strokeWidth="2.2"
+                  strokeLinecap="round" strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 22V12M21 22V12M1 12l11-9 11 9H1zM9 22v-5h6v5" />
+                </svg>
+                Финансирование
+              </span>
+              <h2
+                className="text-lg font-bold"
+                style={{ color: '#0B2B5E' }}
+              >
+                Финансовые партнёры
+              </h2>
+            </div>
+            <Link
+              href="/horeca/finance"
+              className="text-xs font-semibold hover:underline"
+              style={{ color: '#27AE60' }}
+            >
+              Все предложения →
+            </Link>
+          </div>
+
+          {/* 4 карточки — такая же сетка и aspect-square, как у обычных экспонентов */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 lg:gap-5">
+            {BANKS.slice(0, 4).map((bank) => (
+              <Link
+                key={bank.id}
+                href={`/horeca/finance/${bank.slug}`}
+                className="col-span-1 no-underline group focus:outline-none"
+                aria-label={`${bank.name} — финансовый партнёр EXPO 365`}
+              >
+                <div
+                  className={[
+                    'aspect-square flex flex-col items-center justify-center',
+                    'px-3 py-4 text-center rounded-xl relative overflow-hidden',
+                    'bg-white',
+                    'border border-[#0B2B5E]/20',
+                    'shadow-[0_2px_12px_rgba(11,43,94,0.06)]',
+                    'transition-all duration-250 ease-out',
+                    'group-hover:border-[#27AE60]',
+                    'group-hover:shadow-[0_8px_32px_rgba(39,174,96,0.18)]',
+                    'group-hover:-translate-y-1',
+                    'group-focus-visible:ring-2 group-focus-visible:ring-[#27AE60]/50',
+                  ].join(' ')}
+                >
+                  {/* Зелёная полоска сверху (hover) */}
+                  <div
+                    className="absolute inset-x-0 top-0 h-[3px] rounded-t-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    style={{ backgroundColor: '#27AE60' }}
+                    aria-hidden="true"
+                  />
+
+                  {/* Метка «Финансовый партнёр» — правый верхний угол */}
+                  <span
+                    className="absolute top-2 right-2 inline-flex items-center px-1 py-0.5 rounded text-[6px] font-black uppercase tracking-wider leading-none select-none"
+                    style={{
+                      backgroundColor: 'rgba(39,174,96,0.12)',
+                      color: '#27AE60',
+                      border: '1px solid rgba(39,174,96,0.25)',
+                    }}
+                  >
+                    Фин. партнёр
+                  </span>
+
+                  {/* Логотип/Аватар банка */}
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 flex-shrink-0 transition-transform duration-250 group-hover:scale-110"
+                    style={{ backgroundColor: bank.accentColor }}
+                    aria-hidden="true"
+                  >
+                    <span className="text-base font-black text-white leading-none select-none">
+                      {bank.shortName.slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+
+                  {/* Название банка */}
+                  <h3
+                    className="text-sm font-semibold leading-tight text-center line-clamp-2"
+                    style={{ color: '#0B2B5E' }}
+                  >
+                    {bank.shortName}
+                  </h3>
+
+                  {/* Слоган — зелёный акцент */}
+                  {bank.tagline && (
+                    <p
+                      className="mt-1.5 text-[9px] font-medium leading-tight text-center line-clamp-2"
+                      style={{ color: '#27AE60' }}
+                    >
+                      {bank.tagline.length > 28 ? bank.tagline.slice(0, 28) + '…' : bank.tagline}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Разделитель ── */}
+        <div
+          className="mb-8 border-t"
+          style={{ borderColor: 'rgba(11,43,94,0.08)' }}
+          aria-hidden="true"
+        />
+
+        {/* ── Заголовок сетки отраслей ── */}
+        <div className="flex items-center gap-2 mb-5">
+          <span
+            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+            style={{ backgroundColor: '#0B2B5E' }}
+            aria-hidden="true"
+          />
+          <h2
+            className="text-base font-bold"
+            style={{ color: '#0B2B5E' }}
+          >
+            Отраслевые категории
+          </h2>
+          <span
+            className="text-xs font-medium tabular-nums"
+            style={{ color: 'rgba(11,43,94,0.5)' }}
+          >
+            {filteredCategories.length} из {HORECA_CATEGORIES.length}
+          </span>
+        </div>
+
+        {/* ── 8-КОЛОНОЧНАЯ СЕТКА ОТРАСЛЕЙ ── */}
+        {filteredCategories.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 lg:gap-5">
+            {filteredCategories.map((category) => {
+              const IconComponent = LucideIcons[category.icon] as LucideIcon;
+
+              return (
+                <Link
+                  key={category.id}
+                  href={`/horeca/discovery?category=${encodeURIComponent(category.slug)}`}
+                  className="col-span-1 lg:col-span-2 no-underline group focus:outline-none"
+                  aria-label={`${category.title} — ${category.exhibitors} экспонентов`}
+                >
+                  <div
+                    className={[
+                      'aspect-square flex flex-col items-center justify-center',
+                      'px-3 py-4 text-center rounded-xl',
+                      'bg-white',
+                      'border border-[#0B2B5E]/20',
+                      'shadow-[0_2px_12px_rgba(11,43,94,0.06)]',
+                      'transition-all duration-250 ease-out',
+                      'group-hover:border-[#F26522]',
+                      'group-hover:shadow-[0_8px_32px_rgba(242,101,34,0.18)]',
+                      'group-hover:-translate-y-1',
+                      'group-focus-visible:ring-2 group-focus-visible:ring-[#F26522]/50',
+                    ].join(' ')}
+                  >
+                    {/* Иконка */}
+                    <div
+                      className="flex-shrink-0 transition-transform duration-250 group-hover:scale-110"
+                      style={{ color: '#0B2B5E' }}
+                      aria-hidden="true"
+                    >
+                      <IconComponent size={44} strokeWidth={1.5} />
+                    </div>
+
+                    {/* Название */}
+                    <h2
+                      className="mt-3 text-sm font-semibold leading-tight text-center line-clamp-2"
+                      style={{ color: '#0B2B5E' }}
+                    >
+                      {category.title}
+                    </h2>
+
+                    {/* Счётчик экспонентов — оранжевый */}
+                    <p
+                      className="mt-1.5 text-xs font-bold leading-none"
+                      style={{ color: '#F26522' }}
+                    >
+                      Экспонентов: {category.exhibitors}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          /* Пустое состояние */
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+              style={{ backgroundColor: 'rgba(11,43,94,0.06)' }}
+            >
+              <LucideIcons.Search
+                size={28}
+                strokeWidth={1.5}
+                color="#0B2B5E"
+                aria-hidden="true"
+              />
+            </div>
+            <p
+              className="text-base font-semibold"
+              style={{ color: '#0B2B5E' }}
+            >
+              Категории не найдены
+            </p>
+            <p
+              className="text-sm font-medium mt-1"
+              style={{ color: 'rgba(11,43,94,0.55)' }}
+            >
+              Попробуйте другой поисковый запрос
+            </p>
+          </div>
+        )}
 
       </div>
     </main>

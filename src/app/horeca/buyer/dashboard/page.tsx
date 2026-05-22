@@ -8,6 +8,7 @@ import { TenderCreationForm } from './components/TenderCreationForm'
 import { SuppliersFeed } from './components/SuppliersFeed'
 import { SpecialOffersSection } from './components/SpecialOffersSection'
 import { ActiveTendersSection } from './components/ActiveTendersSection'
+import { HrSection } from './components/HrSection'
 
 /**
  * BuyerDashboard — Кабинет покупателя /horeca/buyer/dashboard
@@ -145,6 +146,15 @@ export default function BuyerDashboard() {
           <SpecialOffersSection />
         </div>
       </div>
+
+      {/* ── HR / Вакансии ───────────────────────────────────────────────────── */}
+      {/*
+       * HrSection — управление вакансиями прямо из кабинета покупателя.
+       * Загружает данные клиентски (useEffect + getMyVacancies) чтобы не
+       * блокировать SSR dashboard. defaultEmployerType='visitor' отражает
+       * роль Buyer (ресторан/HoReCa-оператор).
+       */}
+      <HrSection defaultEmployerType="visitor" />
 
       {/* ── Модальная форма создания тендера ──────────────────────────────── */}
       {showTenderForm && (

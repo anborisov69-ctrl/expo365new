@@ -288,7 +288,7 @@ export default function DealsLineChart({ data }: DealsLineChartProps) {
                 </p>
                 {tooltip.point.wonTenders > 0 && (
                   <p className="text-[#F26522] font-medium mt-0.5">
-                    🏆 {tooltip.point.wonTenders} побед
+                    {tooltip.point.wonTenders} побед
                   </p>
                 )}
               </div>

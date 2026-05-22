@@ -211,7 +211,7 @@ export default function AnalyticsDashboardPage() {
           subtitle="По количеству просмотров и запросов цены"
           action={
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFF0E6] text-[#F26522] text-[10px] font-semibold">
-              🔥 Горячие позиции
+              Горячие позиции
             </span>
           }
         >

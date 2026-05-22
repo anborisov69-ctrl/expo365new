@@ -644,7 +644,7 @@ export default function MarketplaceClient() {
       <section
         className="flex-1 flex flex-col min-w-0 overflow-hidden"
         style={blueprintBg}
-        aria-label="Каталог товаров EXPO 365 Marketplace"
+        aria-label="Витрина ЭКСПО 365 — каталог товаров"
       >
         {/* ─── Sticky-шапка ──────────────────────────────────────────────────── */}
         <div
@@ -669,7 +669,7 @@ export default function MarketplaceClient() {
                   HoReCa B2B · EXPO 365
                 </p>
                 <h1 className="text-sm font-black leading-none" style={{ color: '#0B2B5E' }}>
-                  Маркетплейс товаров
+                  Витрина ЭКСПО 365
                 </h1>
               </div>
             </div>

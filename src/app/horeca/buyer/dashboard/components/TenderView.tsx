@@ -443,7 +443,7 @@ export function TenderView({
                 </p>
                 {tender.winnerName ? (
                   <p className="text-sm text-green-700 mt-0.5">
-                    🏆 Победитель: <span className="font-medium">{tender.winnerName}</span>
+                    Победитель: <span className="font-medium">{tender.winnerName}</span>
                   </p>
                 ) : (
                   <p className="text-xs text-green-600 mt-0.5">

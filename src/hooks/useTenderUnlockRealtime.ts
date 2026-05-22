@@ -7,8 +7,8 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { createClient } from '@supabase/supabase-js'
-import { 
+import { getSupabaseClient } from '@/lib/supabase'
+import {
   TenderUnlock,
   TenderAccessStatus,
   TenderUnlockStatus
@@ -17,9 +17,6 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════════════════════
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TENDER UNLOCK REALTIME HOOK
@@ -63,13 +60,13 @@ export function useTenderUnlockRealtime({
     error: null
   })
 
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  const supabaseRef = useRef<ReturnType<typeof getSupabaseClient> | null>(null)
   const subscriptionRef = useRef<any>(null)
 
-  // Инициализация Supabase клиента
+  // Инициализация Supabase клиента (singleton — без дублирования GoTrueClient)
   useEffect(() => {
     if (!supabaseRef.current) {
-      supabaseRef.current = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      supabaseRef.current = getSupabaseClient()
     }
   }, [])
 

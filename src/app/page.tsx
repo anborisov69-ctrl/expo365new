@@ -2,6 +2,7 @@ import { ChefHat, Sparkles, Stethoscope, Wrench, Lock } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import { DevAuthToggle } from '@/components/DevAuthToggle';
 
 export default function Page() {
   const industries = [
@@ -62,6 +63,14 @@ export default function Page() {
                 Твоя отрасль. Твои контакты. Твои возможности.<br />
                 365 дней в году.
               </p>
+            </div>
+
+            {/* Dev Auth Toggle - для быстрого тестирования ролей */}
+            <div className="mt-6 p-4 bg-gray-100 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600 mb-3 font-medium">
+                Режим разработки — быстрый вход для тестирования:
+              </p>
+              <DevAuthToggle />
             </div>
           </div>
         </section>

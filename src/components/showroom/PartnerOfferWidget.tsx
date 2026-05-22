@@ -220,7 +220,7 @@ function PartnerOfferCard({ computed, validUntil, offerTitle, exhibitorSlug }: P
           discountAmount: discountAmount,
           paymentType: (paymentTerms?.type === 'installment' ? 'installment' : 'deferred') as 'deferred' | 'installment',
           initialPayment: initialPayment || 0,
-          installmentsCount: paymentTerms?.paymentsCount || 3
+          installmentsCount: (paymentTerms?.type === 'installment' ? paymentTerms.paymentsCount : 3)
         },
         status: 'DRAFT_PENDING_DOCS'
       };

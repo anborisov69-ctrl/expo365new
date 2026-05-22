@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (tender.buyer_id !== body.buyerId) {
-      console.error(`[tender-close] Ownership mismatch: tender.buyer_id=${tender.buyerId}, provided buyerId=${body.buyerId}`)
+      console.error(`[tender-close] Ownership mismatch: tender.buyer_id=${tender.buyer_id}, provided buyerId=${body.buyerId}`)
       return NextResponse.json(
         { error: 'Недостаточно прав для закрытия тендера' },
         { status: 403 }

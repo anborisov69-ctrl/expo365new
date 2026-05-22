@@ -8,7 +8,7 @@
  * - Real-time обновления статуса разблокировок
  */
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { 
   TenderUnlock, 
   TenderAccessStatus,
@@ -45,7 +45,21 @@ const PREMIUM_SUBSCRIPTION_PRICE = 1500
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class TenderUnlockServiceImpl implements TenderUnlockService {
-  private supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private _supabase: SupabaseClient<any> | null = null
+
+  /** Ленивая инициализация — клиент создаётся только при первом обращении (в runtime, не при сборке) */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private get supabase(): SupabaseClient<any> {
+    if (!this._supabase) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this._supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      ) as SupabaseClient<any>
+    }
+    return this._supabase
+  }
 
   /**
    * Проверяет доступ экспонента к тендеру с учетом разблокировок

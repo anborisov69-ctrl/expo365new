@@ -82,8 +82,8 @@ export default function BuyerLayout({ children }: BuyerLayoutProps) {
           {/* Правая зона: навигация */}
           <nav className="flex items-center gap-1" aria-label="Навигация кабинета покупателя">
             {[
-              { href: '/horeca/discovery',   label: 'Каталог'       },
-              { href: '/horeca/marketplace', label: 'Маркетплейс'   },
+              { href: '/horeca/discovery',   label: 'Каталог'            },
+              { href: '/horeca/marketplace', label: 'Витрина ЭКСПО 365'  },
               { href: '/horeca/finance',     label: 'Финансирование' },
               { href: '/horeca',             label: 'Главная'        },
             ].map(({ href, label }) => (

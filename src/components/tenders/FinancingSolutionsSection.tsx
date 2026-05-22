@@ -182,7 +182,7 @@ function OfferCard({ offer, dealAmount, isAccepting, onAccept }: OfferCardProps)
               style={{ backgroundColor: 'rgba(242,101,34,0.08)' }}
             >
               <span className="text-[10px] font-bold text-slate-600">
-                💳 Ежемесячный платёж составит:
+                Ежемесячный платёж составит:
               </span>
               <span className="text-[18px] font-black tabular-nums" style={{ color: '#F26522' }}>
                 {fmt(monthly)}

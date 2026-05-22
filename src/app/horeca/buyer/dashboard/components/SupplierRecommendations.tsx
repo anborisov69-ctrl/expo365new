@@ -177,7 +177,7 @@ export function SupplierRecommendations({
         {/* ПРИЗЫВ К ДЕЙСТВИЮ */}
         <div className="pt-2 border-t border-orange-200">
           <p className="text-xs text-gray-500 text-center">
-            💡 Премиум поставщики получают мгновенный доступ к вашим тендерам
+            Премиум поставщики получают мгновенный доступ к вашим тендерам
           </p>
         </div>
       </CardContent>

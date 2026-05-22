@@ -2,7 +2,12 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEcosystem, type EcoProduct } from '@/store/ecosystemStore';
+import { usePartnerOffer } from '@/hooks/usePartnerOffer';
+import PartnerOfferWidget from '@/components/showroom/PartnerOfferWidget';
+import B2BChatModal from '@/components/chat/B2BChatModal';
+import type { PartnerOfferComputed, SmartContractParams } from '@/types/partner-offer';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ТИПЫ — ПРОФИЛЬ ЭКСПОНЕНТА
@@ -99,6 +104,13 @@ export interface ExhibitorProduct {
   isNew?: boolean;
   /** Краткое описание для модального окна (1-2 строки) */
   shortDescription?: string;
+  /**
+   * [Partner Logic] Партнёрская цена из EcosystemStore.
+   * Отображается ТОЛЬКО байерам, пришедшим по /ref/ooo-test.
+   */
+  partnerPrice?: string;
+  /** [Partner Logic] Товар входит в партнёрскую программу */
+  forPartners?: boolean;
 }
 
 /**
@@ -171,6 +183,16 @@ export interface ExhibitorProfile {
    * Порядок отображения соответствует порядку массива.
    */
   recommendations?: Recommendation[];
+  /**
+   * Контактные данные экспонента — отображаются в нижней панели шапки.
+   * При Supabase хранятся как JSONB-поле в `exhibitor_profiles`.
+   * Все поля опциональны — рендерится только при наличии значения.
+   */
+  contacts?: {
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -368,7 +390,14 @@ function SubscribeButton() {
 }
 
 /** Компонент шапки профиля экспонента — Blueprint 2.0 */
-function ExhibitorHeader({ profile }: { profile: ExhibitorProfile }) {
+function ExhibitorHeader({
+  profile,
+  onOpenChat,
+}: {
+  profile: ExhibitorProfile;
+  /** Коллбэк кнопки «Чат» — открывает ExpoChatSync */
+  onOpenChat?: () => void;
+}) {
   return (
     <div
       className="relative overflow-hidden"
@@ -452,6 +481,82 @@ function ExhibitorHeader({ profile }: { profile: ExhibitorProfile }) {
                 {region}
               </span>
             ))}
+          </div>
+        )}
+
+        {/* ── КОНТАКТНАЯ ПАНЕЛЬ + КНОПКА ЧАТА ────────────────────────────────────
+         *
+         * Отображается только при наличии хотя бы одного контакта ИЛИ коллбэка чата.
+         * White-текст, opacity 80% для спокойного восприятия, hover → opacity 100%.
+         * Кнопка «Чат» — #F26522, rounded-2xl, белый текст.
+         */}
+        {(profile.contacts?.phone || profile.contacts?.email || profile.contacts?.website || onOpenChat) && (
+          <div
+            className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-4 pt-4"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            {/* Телефон */}
+            {profile.contacts?.phone && (
+              <a
+                href={`tel:${profile.contacts.phone}`}
+                className="flex items-center gap-2 text-sm text-white/75 hover:text-white transition-colors duration-150 rounded-xl"
+                aria-label={`Позвонить: ${profile.contacts.phone}`}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.34a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.44h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.29 6.29l.95-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+                <span>{profile.contacts.phone}</span>
+              </a>
+            )}
+
+            {/* E-mail */}
+            {profile.contacts?.email && (
+              <a
+                href={`mailto:${profile.contacts.email}`}
+                className="flex items-center gap-2 text-sm text-white/75 hover:text-white transition-colors duration-150 rounded-xl"
+                aria-label={`Написать на ${profile.contacts.email}`}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+                <span>{profile.contacts.email}</span>
+              </a>
+            )}
+
+            {/* Сайт */}
+            {profile.contacts?.website && (
+              <a
+                href={profile.contacts.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm text-white/75 hover:text-white transition-colors duration-150 rounded-xl"
+                aria-label={`Сайт: ${profile.contacts.website}`}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+                  <path d="M2 12h20"/>
+                </svg>
+                <span>{profile.contacts.website.replace(/^https?:\/\//, '')}</span>
+              </a>
+            )}
+
+            {/* Кнопка «Чат» — #F26522, ml-auto */}
+            {onOpenChat && (
+              <button
+                type="button"
+                onClick={onOpenChat}
+                className="ml-auto flex items-center gap-2 px-5 py-2 rounded-2xl text-sm font-bold text-white transition-all duration-150 hover:brightness-110 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                style={{ backgroundColor: '#F26522', boxShadow: '0 4px 14px rgba(242,101,34,0.40)' }}
+                aria-label="Открыть чат с экспонентом"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+                Чат
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -647,6 +752,141 @@ function RecommendedPartnersBar({ recommendations }: { recommendations: Recommen
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// БЛОК ПОСЛЕДНИХ НОВОСТЕЙ — 3 КАРТОЧКИ ПОД РЕКОМЕНДАЦИЯМИ
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * `ExhibitorNewsBlock` — секция «Последние новости» под рекомендациями.
+ *
+ * Показывает до 3 последних новостей экспонента в горизонтальной сетке.
+ * На мобильных — одна колонка, на sm+ — три колонки.
+ *
+ * Каждая карточка:
+ *   • Квадратный thumbnail 80×80 (rounded-2xl) слева
+ *   • Заголовок новости справа (Deep Blue #0B2B5E)
+ *   • Дата публикации под заголовком
+ *
+ * TODO: При интеграции с Supabase — fetch из таблицы `news` с фильтром по exhibitor_id,
+ *       сортировка по `published_at DESC LIMIT 3`, RLS: публичное чтение published.
+ */
+function ExhibitorNewsBlock({
+  news,
+  onOpenNews,
+}: {
+  news: ExhibitorNewsItem[];
+  onOpenNews: (n: ExhibitorNewsItem) => void;
+}) {
+  if (!news || news.length === 0) return null;
+
+  const latest = news.slice(0, 3);
+
+  /** Градиенты-плейсхолдеры для thumbnail без mediaUrl */
+  const THUMB_GRADIENTS = [
+    'linear-gradient(135deg, #0B2B5E 0%, #1a4a8a 100%)',
+    'linear-gradient(135deg, #1a3060 0%, #2d5090 100%)',
+    'linear-gradient(135deg, #0d2248 0%, #173878 100%)',
+  ] as const;
+
+  return (
+    <section
+      className="bg-white border-b border-slate-100"
+      style={{ boxShadow: '0 2px 10px rgba(11,43,94,0.05)' }}
+      aria-label="Последние новости экспонента"
+    >
+      {/* Заголовок секции */}
+      <div className="px-6 pt-3.5 pb-0 flex items-center gap-2">
+        <span
+          className="inline-block w-3 h-0.5 rounded-full flex-shrink-0"
+          style={{ backgroundColor: '#F26522' }}
+          aria-hidden="true"
+        />
+        <h2 className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#0B2B5E' }}>
+          Последние новости
+        </h2>
+        <span
+          className="ml-auto inline-flex items-center justify-center min-w-[20px] h-4 px-1.5 rounded-full text-[9px] font-bold leading-none"
+          style={{ backgroundColor: 'rgba(11,43,94,0.08)', color: '#0B2B5E' }}
+        >
+          {latest.length}
+        </span>
+      </div>
+
+      {/* Сетка: 3 колонки на sm+, 1 на мобильных */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 px-6 py-4">
+        {latest.map((item, idx) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onOpenNews(item)}
+            className="flex items-start gap-3 text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F26522]/50 rounded-2xl transition-opacity duration-150 hover:opacity-80"
+          >
+            {/* Квадратный thumbnail (80×80, rounded-2xl) */}
+            <div
+              className="flex-shrink-0 w-20 h-20 rounded-2xl overflow-hidden"
+              style={!item.mediaUrl ? { background: THUMB_GRADIENTS[idx % 3] } : undefined}
+            >
+              {item.mediaUrl ? (
+                <img
+                  src={item.mediaUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  aria-hidden="true"
+                />
+              ) : (
+                /* Иконка-плейсхолдер для новостей без изображения */
+                <div className="w-full h-full flex items-center justify-center">
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.45)"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/>
+                    <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                    <path d="M2 13h10M6 17h6"/>
+                  </svg>
+                </div>
+              )}
+            </div>
+
+            {/* Заголовок + дата */}
+            <div className="flex-1 min-w-0 pt-0.5">
+              <p
+                className="text-sm font-semibold leading-snug line-clamp-3"
+                style={{ color: '#0B2B5E' }}
+              >
+                {item.title}
+              </p>
+              <p
+                className="text-[10px] mt-1.5 font-medium"
+                style={{ color: 'rgba(11,43,94,0.45)' }}
+              >
+                {(() => {
+                  try {
+                    return new Date(item.publishedAt).toLocaleDateString('ru-RU', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    });
+                  } catch {
+                    return item.publishedAt;
+                  }
+                })()}
+              </p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // КОМПОНЕНТ НАВИГАЦИОННЫХ ТАБОВ
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -660,7 +900,7 @@ function ExhibitorTabs({ activeTab, onTabChange, counts }: ExhibitorTabsProps) {
   return (
     <nav
       aria-label="Разделы витрины экспонента"
-      className="flex flex-wrap items-end gap-2 border-b border-slate-200 bg-white px-4 max-w-[calc(100%-400px)]"
+      className="flex flex-wrap items-end gap-2 border-b border-slate-200 bg-white px-4 w-full"
     >
       {DASHBOARD_TABS.map((tab) => {
         const isActive = tab.id === activeTab;
@@ -736,8 +976,8 @@ interface ProductCardProps {
 function ProductCard({ product, onOpen }: ProductCardProps) {
   return (
     <article
-      className="group relative aspect-square rounded-lg overflow-hidden cursor-pointer col-span-1 sm:col-span-2 border border-[#0B2B5E]/10"
-      style={{ boxShadow: '0 4px 20px rgba(11,43,94,0.10)' }}
+      className="group relative aspect-square rounded-2xl overflow-hidden cursor-pointer col-span-1 sm:col-span-2 border border-[#0B2B5E]/20"
+      style={{ borderColor: 'rgba(11,43,94,0.2)' }}
       onClick={() => onOpen(product)}
       role="button"
       tabIndex={0}
@@ -1247,8 +1487,8 @@ function AboutTab({ profile }: { profile: ExhibitorProfile }) {
           ].map(({ label, value }) => (
             <div
               key={label}
-              className="rounded-xl border border-slate-100 bg-white px-4 py-3"
-              style={{ boxShadow: '0 2px 8px rgba(11,43,94,0.05)' }}
+              className="rounded-2xl border bg-white px-4 py-3"
+              style={{ borderColor: 'rgba(11,43,94,0.2)' }}
             >
               <dt className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-1">{label}</dt>
               <dd className="text-sm font-bold" style={{ color: '#0B2B5E' }}>{value}</dd>
@@ -1320,10 +1560,9 @@ function HotNewsWidget({ news, onOpen }: HotNewsWidgetProps) {
 
   return (
     <div
-      className="w-full rounded-xl overflow-hidden"
+      className="w-full rounded-2xl overflow-hidden"
       style={{
-        border: '1px solid rgba(11,43,94,0.10)',
-        boxShadow: '0 2px 12px rgba(11,43,94,0.06)',
+        border: '1px solid rgba(11,43,94,0.20)',
       }}
     >
       {/* ── Шапка виджета: "ГОРЯЧАЯ НОВОСТЬ" ── */}
@@ -1454,9 +1693,11 @@ interface ExhibitorSidebarProps {
   news?: ExhibitorNewsItem[];
   onOpenNews: (item: ExhibitorNewsItem) => void;
   onUploadRequisites: () => void;
+  /** Открыть ExpoChatSync — эмитит SessionStart → Vibrant Alert у экспонента */
+  onOpenChat: () => void;
 }
 
-function ExhibitorSidebar({ news, onOpenNews, onUploadRequisites }: ExhibitorSidebarProps) {
+function ExhibitorSidebar({ news, onOpenNews, onUploadRequisites, onOpenChat }: ExhibitorSidebarProps) {
   return (
     <aside
       className="flex flex-col gap-3"
@@ -1467,48 +1708,11 @@ function ExhibitorSidebar({ news, onOpenNews, onUploadRequisites }: ExhibitorSid
         <HotNewsWidget news={news} onOpen={onOpenNews} />
       )}
 
-      {/* ─── 1. СПЕЦИАЛЬНЫЕ ПРЕДЛОЖЕНИЯ ─────────────────────────────────────── */}
-      <button
-        type="button"
-        className={[
-          'w-full flex items-center gap-4 px-5 py-8 rounded-xl min-h-[140px]',
-          'text-left transition-all duration-150 active:scale-[0.98] hover:brightness-110',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F26522]/50',
-        ].join(' ')}
-        style={{
-          backgroundColor: '#F26522',
-          boxShadow: '0 6px 24px rgba(242,101,34,0.40)',
-        }}
-        aria-label="Специальные предложения для партнёров"
-      >
-        <span
-          className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: 'rgba(255,255,255,0.20)' }}
-          aria-hidden="true"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2c0 0-4 4-4 9a4 4 0 0 0 8 0 9 9 0 0 0-4-9z" />
-            <path d="M12 12c0 0-2 2-2 4a2 2 0 0 0 4 0c0-2-2-4-2-4z" fill="white" stroke="none" />
-          </svg>
-        </span>
-
-        <div className="flex-1 min-w-0">
-          <p className="text-2xl font-black uppercase tracking-wide text-white leading-tight">
-            Спец. предложения
-          </p>
-          <p className="text-base font-semibold text-white/90 leading-tight mt-2">
-            для партнёров B2B
-          </p>
-        </div>
-
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.80)" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-          <path d="M5 12h14M12 5l7 7-7 7" />
-        </svg>
-      </button>
 
       {/* ─── 2. ЧАТ С ЭКСПОНЕНТОМ ───────────────────────────────────────────── */}
       <button
         type="button"
+        onClick={onOpenChat}
         className={[
           'w-full flex items-center gap-4 px-5 py-6 rounded-xl',
           'text-left transition-all duration-150 active:scale-[0.98] hover:brightness-110',
@@ -1545,11 +1749,10 @@ function ExhibitorSidebar({ news, onOpenNews, onUploadRequisites }: ExhibitorSid
 
       {/* ─── 3. КОМАНДА ЭКСПОНЕНТА ОНЛАЙН ───────────────────────────────────── */}
       <div
-        className="w-full rounded-xl px-4 py-4"
+        className="w-full rounded-2xl px-4 py-4"
         style={{
           backgroundColor: '#ffffff',
-          border: '1px solid rgba(11,43,94,0.09)',
-          boxShadow: '0 2px 12px rgba(11,43,94,0.06)',
+          border: '1px solid rgba(11,43,94,0.20)',
         }}
       >
         <div className="flex items-center gap-2 mb-4">
@@ -1617,7 +1820,7 @@ function ExhibitorSidebar({ news, onOpenNews, onUploadRequisites }: ExhibitorSid
           ].join(' ')}
           style={{
             backgroundColor: 'rgba(11,43,94,0.05)',
-            border: '1px solid rgba(11,43,94,0.10)',
+            border: '1px solid rgba(11,43,94,0.20)',
           }}
           aria-label="Сертификаты и документы ISO, ГОСТ"
         >
@@ -1651,7 +1854,7 @@ function ExhibitorSidebar({ news, onOpenNews, onUploadRequisites }: ExhibitorSid
           ].join(' ')}
           style={{
             backgroundColor: 'rgba(11,43,94,0.05)',
-            border: '1px solid rgba(11,43,94,0.10)',
+            border: '1px solid rgba(11,43,94,0.20)',
           }}
           aria-label="Типовые договоры и оферты"
         >
@@ -2093,8 +2296,12 @@ function UploadRequisitesModal({ open, onClose }: UploadRequisitesModalProps) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface ProductModalProps {
-  product: ExhibitorProduct | null;
-  onClose: () => void;
+  product:          ExhibitorProduct | null;
+  onClose:          () => void;
+  /** Callback для инициирования сделки ("Сформировать запрос") */
+  onDealRequest?:   (product: ExhibitorProduct) => void;
+  /** Байер пришёл по реферальной ссылке — показывать partner price */
+  isReferralBuyer?: boolean;
 }
 
 /**
@@ -2105,13 +2312,14 @@ interface ProductModalProps {
  *                               + акцентная CTA [Запросить финансовую поддержку]
  *   • прочие → [Запросить КП] [Запросить образец]
  */
-function ProductModal({ product, onClose }: ProductModalProps) {
+function ProductModal({ product, onClose, onDealRequest, isReferralBuyer }: ProductModalProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
 
   if (!product) return null;
 
-  const isEquipment = product.category === 'equipment' || product.category === 'service';
+  const isEquipment    = product.category === 'equipment' || product.category === 'service';
+  const hasPartnerDeal = isReferralBuyer && !!product.partnerPrice;
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose();
@@ -2186,10 +2394,29 @@ function ProductModal({ product, onClose }: ProductModalProps) {
               {product.name}
             </h3>
             <div className="flex-shrink-0 text-right">
-              <p className="text-[10px] text-slate-400 font-medium leading-none mb-0.5">от</p>
-              <p className="text-sm font-bold leading-none" style={{ color: '#F26522' }}>
-                {product.basePrice}
-              </p>
+              {hasPartnerDeal ? (
+                <>
+                  {/* Partner price badge */}
+                  <div
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wide mb-1"
+                    style={{ backgroundColor: 'rgba(11,43,94,0.08)', color: '#0B2B5E' }}
+                  >
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>
+                    Для партнёров
+                  </div>
+                  <p className="text-sm font-bold leading-none" style={{ color: '#F26522' }}>
+                    {product.partnerPrice}
+                  </p>
+                  <p className="text-[9px] text-slate-400 line-through mt-0.5">{product.basePrice}</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] text-slate-400 font-medium leading-none mb-0.5">от</p>
+                  <p className="text-sm font-bold leading-none" style={{ color: '#F26522' }}>
+                    {product.basePrice}
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
@@ -2203,6 +2430,27 @@ function ProductModal({ product, onClose }: ProductModalProps) {
 
           {isEquipment ? (
             <div className="flex flex-col gap-2.5">
+              {/* ── [Smart Contract] Сформировать запрос — PRIMARY CTA ── */}
+              {onDealRequest && (
+                <button
+                  type="button"
+                  onClick={() => { onDealRequest(product); onClose(); }}
+                  className={[
+                    'w-full flex items-center justify-center gap-2.5 rounded-xl px-4 py-3.5',
+                    'text-sm font-bold text-white uppercase tracking-wide',
+                    'transition-all duration-150 active:scale-[0.98] hover:brightness-110',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F26522]/50',
+                  ].join(' ')}
+                  style={{ backgroundColor: '#F26522', boxShadow: '0 4px 16px rgba(242,101,34,0.40)' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0" aria-hidden="true">
+                    <path d="M9 12h6M12 9v6" />
+                    <path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" />
+                  </svg>
+                  Сформировать запрос
+                </button>
+              )}
+
               <button
                 type="button"
                 className={[
@@ -2276,6 +2524,27 @@ function ProductModal({ product, onClose }: ProductModalProps) {
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
+              {/* ── [Smart Contract] Сформировать запрос — PRIMARY CTA (non-equipment) ── */}
+              {onDealRequest && (
+                <button
+                  type="button"
+                  onClick={() => { onDealRequest(product); onClose(); }}
+                  className={[
+                    'w-full flex items-center justify-center gap-2.5 rounded-xl px-4 py-3.5',
+                    'text-sm font-bold text-white uppercase tracking-wide',
+                    'transition-all duration-150 active:scale-[0.98] hover:brightness-110',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F26522]/50',
+                  ].join(' ')}
+                  style={{ backgroundColor: '#F26522', boxShadow: '0 4px 16px rgba(242,101,34,0.40)' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0" aria-hidden="true">
+                    <path d="M9 12h6M12 9v6" />
+                    <path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" />
+                  </svg>
+                  Сформировать запрос
+                </button>
+              )}
+
               <button
                 type="button"
                 className={[
@@ -2317,11 +2586,327 @@ function ProductModal({ product, onClose }: ProductModalProps) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// DEAL REQUEST MODAL — Smart Contract Bridge
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Модал "Сформировать запрос" — инициализирует объект Сделки.
+ * При submit:
+ *   1. dispatch CREATE_DEAL → EcosystemStore
+ *   2. dispatch MARK_CLIENT → если байер реферальный
+ *   3. dispatch REGISTER_REFERRAL_VISITOR → если байер реферальный и новый
+ *
+ * TODO (Supabase): заменить dispatch на INSERT INTO deal_requests + RLS
+ */
+interface DealRequestModalProps {
+  product:        ExhibitorProduct;
+  exhibitorSlug:  string;
+  exhibitorName:  string;
+  isReferralBuyer: boolean;
+  onClose:        () => void;
+}
+
+function DealRequestModal({ product, exhibitorSlug, exhibitorName, isReferralBuyer, onClose }: DealRequestModalProps) {
+  const { state, dispatch } = useEcosystem();
+  const [submitted,  setSubmitted]  = useState(false);
+  const [quantity,   setQuantity]   = useState(1);
+  const [name,       setName]       = useState('');
+  const [company,    setCompany]    = useState('');
+  const [email,      setEmail]      = useState('');
+  const [message,    setMessage]    = useState('');
+  const [isLoading,  setIsLoading]  = useState(false);
+
+  const showPartnerPrice = isReferralBuyer && !!product.partnerPrice;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !email.trim()) return;
+    setIsLoading(true);
+
+    // Имитируем сетевой запрос
+    await new Promise((r) => setTimeout(r, 800));
+
+    const buyerId = `buyer-${Date.now()}`;
+
+    const deal = {
+      id:            `deal-${Date.now()}`,
+      productId:     product.id,
+      productName:   product.name,
+      exhibitorId:   `exp-${exhibitorSlug}`,
+      exhibitorName,
+      exhibitorSlug,
+      buyerId,
+      buyerName:     name.trim(),
+      buyerEmail:    email.trim(),
+      buyerCompany:  company.trim(),
+      status:        'new' as const,
+      isPartnerDeal: isReferralBuyer,
+      partnerPrice:  showPartnerPrice ? product.partnerPrice : undefined,
+      basePrice:     product.basePrice,
+      quantity,
+      message:       message.trim() || undefined,
+      createdAt:     new Date().toISOString(),
+    };
+
+    dispatch({ type: 'CREATE_DEAL', deal });
+
+    // Если реферальный байер — регистрируем как клиента
+    if (isReferralBuyer && state.referralSource) {
+      const existing = state.referralClients.find(c => c.buyerEmail === email.trim());
+      if (!existing) {
+        dispatch({
+          type: 'REGISTER_REFERRAL_VISITOR',
+          client: {
+            id:           `ref-${Date.now()}`,
+            buyerId,
+            buyerName:    name.trim(),
+            buyerEmail:   email.trim(),
+            buyerCompany: company.trim() || '—',
+            referralSlug: state.referralSource,
+            visitedAt:    new Date().toISOString(),
+            firstDealAt:  new Date().toISOString(),
+            totalDeals:   1,
+            status:       'client',
+          },
+        });
+      } else {
+        dispatch({ type: 'MARK_CLIENT', buyerId: existing.buyerId });
+      }
+    }
+
+    setIsLoading(false);
+    setSubmitted(true);
+  };
+
+  const inputCls = [
+    'w-full h-10 px-3 rounded-xl border text-sm text-[#0B2B5E]',
+    'bg-slate-50 border-slate-200 placeholder:text-slate-400',
+    'focus:outline-none focus:border-[#F26522]/70 focus:bg-white',
+    'transition-colors duration-150',
+  ].join(' ');
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 sm:p-6"
+      style={{ backgroundColor: 'rgba(11,43,94,0.60)', backdropFilter: 'blur(6px)' }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Сформировать запрос"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="relative w-full max-w-md bg-white rounded-2xl overflow-hidden"
+        style={{ boxShadow: '0 24px 80px rgba(11,43,94,0.30)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Синяя полоска-акцент сверху */}
+        <div className="absolute inset-x-0 top-0 h-1 bg-[#0B2B5E]" aria-hidden="true" />
+
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-5 py-4"
+          style={{ borderBottom: '1px solid rgba(11,43,94,0.08)' }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: 'rgba(11,43,94,0.08)' }}
+              aria-hidden="true"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0B2B5E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 12h6M12 9v6" />
+                <path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" />
+              </svg>
+            </div>
+            <h2 className="text-sm font-bold" style={{ color: '#0B2B5E' }}>
+              Сформировать запрос
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors duration-150"
+            aria-label="Закрыть"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-4">
+          {submitted ? (
+            /* Success state */
+            <div className="flex flex-col items-center gap-4 py-6 text-center">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(11,43,94,0.06)' }}
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B2B5E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  <path d="M9 12l2 2 4-4" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#0B2B5E] mb-1">Запрос отправлен!</h3>
+                <p className="text-[12px] text-slate-500 leading-relaxed">
+                  Ваш запрос на{' '}<strong className="text-[#0B2B5E]">{product.name}</strong>{' '}
+                  передан экспоненту. Ожидайте ответа в течение 1 рабочего дня.
+                </p>
+                {isReferralBuyer && (
+                  <div
+                    className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg text-[11px] font-medium"
+                    style={{ backgroundColor: 'rgba(11,43,94,0.06)', color: '#0B2B5E' }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>
+                    Применена партнёрская цена
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-150 hover:brightness-110 active:scale-95"
+                style={{ backgroundColor: '#F26522', boxShadow: '0 4px 12px rgba(242,101,34,0.35)' }}
+              >
+                Закрыть
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+              {/* Товар */}
+              <div
+                className="flex items-center gap-3 p-3 rounded-xl"
+                style={{ backgroundColor: 'rgba(11,43,94,0.04)', border: '1px solid rgba(11,43,94,0.08)' }}
+              >
+                <div
+                  className="w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden"
+                  style={{ background: product.imageGradient }}
+                  aria-hidden="true"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-bold text-[#0B2B5E] truncate">{product.name}</p>
+                  <p className="text-[11px] font-semibold" style={{ color: '#F26522' }}>
+                    {showPartnerPrice ? product.partnerPrice : product.basePrice}
+                    {showPartnerPrice && (
+                      <span className="ml-1.5 text-[9px] text-slate-400 font-normal line-through">
+                        {product.basePrice}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center text-[#0B2B5E] hover:bg-[#0B2B5E]/[0.06] transition-colors"
+                    style={{ borderColor: 'rgba(11,43,94,0.20)' }}>–</button>
+                  <span className="text-sm font-bold text-[#0B2B5E] w-6 text-center">{quantity}</span>
+                  <button type="button" onClick={() => setQuantity(quantity + 1)}
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center text-[#0B2B5E] hover:bg-[#0B2B5E]/[0.06] transition-colors"
+                    style={{ borderColor: 'rgba(11,43,94,0.20)' }}>+</button>
+                </div>
+              </div>
+
+              {/* Partner badge */}
+              {showPartnerPrice && (
+                <div
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium"
+                  style={{ backgroundColor: 'rgba(11,43,94,0.06)', color: '#0B2B5E' }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>
+                  Цена для партнёров активирована — вы пришли по ссылке приглашения
+                </div>
+              )}
+
+              {/* Поля */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Ваше имя *</label>
+                  <input required type="text" placeholder="Иван Иванов" value={name} onChange={e => setName(e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Компания</label>
+                  <input type="text" placeholder='ООО «...»' value={company} onChange={e => setCompany(e.target.value)} className={inputCls} />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">E-mail *</label>
+                <input required type="email" placeholder="ivan@company.ru" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} />
+              </div>
+
+              <div>
+                <label className="block text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Сообщение</label>
+                <textarea
+                  rows={2}
+                  placeholder="Дополнительные сведения о заказе..."
+                  value={message}
+                  onChange={e => setMessage(e.target.value)}
+                  className={[inputCls, 'h-auto resize-none py-2.5'].join(' ')}
+                />
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 h-10 rounded-xl border text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0B2B5E]/20"
+                  style={{ borderColor: 'rgba(11,43,94,0.15)' }}
+                >
+                  Отмена
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 h-10 rounded-xl text-sm font-bold text-white transition-all duration-150 hover:brightness-110 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0B2B5E]/40 disabled:opacity-60"
+                  style={{ backgroundColor: '#0B2B5E', boxShadow: '0 4px 12px rgba(11,43,94,0.25)' }}
+                >
+                  {isLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
+                      Отправка...
+                    </span>
+                  ) : 'Отправить запрос'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // ГЛАВНЫЙ CLIENT COMPONENT — ExhibitorPageClient
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/**
+ * Роль текущего пользователя — передаётся из Server Component page.tsx.
+ *
+ * SECURITY: значение читается из `app_metadata` (server-editable только),
+ * не из `user_metadata` (небезопасна для авторизационных решений).
+ *
+ *   'visitor'        — зарегистрированный байер / посетитель выставки
+ *   'exhibitor'      — верифицированный экспонент платформы
+ *   'private_person' — частное лицо (view-only, без B2B-диалогов)
+ *   null             — анонимный / не авторизован
+ */
+export type UserRole = 'visitor' | 'exhibitor' | 'private_person' | null;
+
 export interface ExhibitorPageClientProps {
   profile: ExhibitorProfile;
+  /**
+   * Роль текущего пользователя из app_metadata.
+   * Управляет видимостью кнопки «Чат» (RBAC):
+   *   • 'visitor' | 'exhibitor' → кнопка ВИДНА
+   *   • 'private_person' | null → кнопка СКРЫТА
+   */
+  userRole: UserRole;
+  /**
+   * auth.uid() текущего пользователя — используется как sender_id
+   * при вставке в таблицу messages. null = анонимный.
+   */
+  userId: string | null;
 }
 
 /**
@@ -2342,36 +2927,119 @@ export interface ExhibitorPageClientProps {
  *
  * Mobile: правая колонка — под основным контентом (flex-col).
  */
-export default function ExhibitorPageClient({ profile }: ExhibitorPageClientProps) {
+export default function ExhibitorPageClient({
+  profile,
+  userRole,
+  userId,
+}: ExhibitorPageClientProps) {
+  // ── URL Parameters & Preview Mode ───────────────────────────────────────────
+  const searchParams = useSearchParams();
+  const testAsBuyerId = searchParams.get('test_as');
+  
+  // ── Ecosystem State ──────────────────────────────────────────────────────────
+  const { state: ecoState } = useEcosystem();
+
+  // ── Partner Offer Logic ──────────────────────────────────────────────────────
+  const { isPartner, specialTerms, computed } = usePartnerOffer(profile.slug);
+
+  // ── Deal Request Modal state ─────────────────────────────────────────────────
+  const [dealProduct, setDealProduct] = useState<ExhibitorProduct | null>(null);
+
   const [activeTab,        setActiveTab]        = useState<DashboardTab>('all');
   const [selectedProduct,  setSelectedProduct]  = useState<ExhibitorProduct | null>(null);
   const [selectedNews,     setSelectedNews]     = useState<ExhibitorNewsItem | null>(null);
   const [requisitesOpen,   setRequisitesOpen]   = useState(false);
+  /** Управляет видимостью B2BChatModal — открывается по клику «ЧАТ С ЭКСПОНЕНТОМ» */
+  const [chatOpen, setChatOpen] = useState(false);
 
-  const handleOpenProduct = useCallback((p: ExhibitorProduct) => setSelectedProduct(p), []);
+  /**
+   * RBAC: кнопка «Чат» скрывается ТОЛЬКО для роли 'private_person'.
+   *
+   * Матрица видимости:
+   *   'visitor'        → ПОКАЗАТЬ (зарегистрированный байер)
+   *   'exhibitor'      → ПОКАЗАТЬ (верифицированный экспонент)
+   *   null             → ПОКАЗАТЬ (анонимный / dev / не авторизован)
+   *   'private_person' → СКРЫТЬ  (частное лицо — view-only режим)
+   *
+   * Если пользователь нажимает чат без авторизации, B2BChatModal показывает
+   * сообщение «Необходимо войти в систему» внутри модального окна.
+   */
+  const canUseChat = userRole !== 'private_person';
+
+  const handleOpenProduct  = useCallback((p: ExhibitorProduct) => setSelectedProduct(p), []);
   const handleCloseProduct = useCallback(() => setSelectedProduct(null), []);
-  const handleOpenNews    = useCallback((n: ExhibitorNewsItem) => setSelectedNews(n), []);
-  const handleCloseNews   = useCallback(() => setSelectedNews(null), []);
+  const handleOpenNews     = useCallback((n: ExhibitorNewsItem) => setSelectedNews(n), []);
+  const handleCloseNews    = useCallback(() => setSelectedNews(null), []);
+
+  // ── Smart Contract: открыть Deal Request Modal ───────────────────────────────
+  const handleDealRequest  = useCallback((p: ExhibitorProduct) => {
+    setSelectedProduct(null); // закрываем ProductModal
+    setDealProduct(p);
+  }, []);
+  const handleCloseDeal    = useCallback(() => setDealProduct(null), []);
+
+  // ── Partner Offer: Smart Contract Integration ────────────────────────────────
+  const handleStartDeal = useCallback((computedOffer: PartnerOfferComputed) => {
+    // Находим текущего реферального клиента
+    const currentReferralClient = ecoState.referralClients.find(
+      client => client.referralSlug === ecoState.referralSource
+    );
+
+    // Создаем параметры Smart Contract
+    const contractParams: SmartContractParams = {
+      buyerName: currentReferralClient?.buyerName || 'Неизвестный покупатель',
+      buyerEmail: currentReferralClient?.buyerEmail || '',
+      buyerCompany: currentReferralClient?.buyerCompany || 'Не указана',
+      exhibitorSlug: profile.slug,
+      exhibitorName: profile.name,
+      computed: computedOffer,
+      initiatedAt: new Date().toISOString(),
+    };
+
+    // TODO: После подключения Supabase - отправка в таблицу smart_contract_drafts
+    console.log('[Smart Contract] Инициализирован:', contractParams);
+
+    // Временно показываем alert с параметрами сделки
+    alert(
+      `Сделка инициирована!\n\n` +
+      `Итоговая цена: ${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(computedOffer.finalPrice)}\n` +
+      `Скидка: ${computedOffer.discountPercent}% (экономия ${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(computedOffer.discountAmount)})\n` +
+      `Условия: ${computedOffer.paymentTerms ?
+        computedOffer.paymentTerms.type === 'deferred'
+          ? `Отсрочка ${computedOffer.paymentTerms.deferralDays} дн.`
+          : `Рассрочка: ${computedOffer.initialPayment ? new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(computedOffer.initialPayment) : 0} + ${computedOffer.paymentTerms.paymentsCount} платежей`
+        : 'Полная предоплата'}\n\n` +
+      `Параметры переданы в Smart Contract модуль.`
+    );
+  }, [profile.slug, profile.name, ecoState.referralClients, ecoState.referralSource]);
+
+  // ── Discovery Layer: если slug = 'ooo-test' — читаем продукты из контекста ──
+  // Admin Products page при сохранении диспатчит SYNC_PRODUCTS / UPDATE_PRODUCT,
+  // что мгновенно обновляет publicProducts без перезагрузки страницы.
+  const isOooTest    = profile.slug === 'ooo-test';
+  const ecoProducts  = ecoState.oooTestProducts as ExhibitorProduct[];
+  const liveProducts: ExhibitorProduct[] = isOooTest ? ecoProducts : profile.products;
+  const isReferralBuyer = ecoState.isReferralBuyer;
 
   // Новости экспонента (из профиля или пустой массив)
   const newsItems = profile.news ?? [];
 
-  // Счётчики для всех 10 вкладок
+  // Счётчики для всех 10 вкладок (используем liveProducts для live-sync)
   const counts: Record<DashboardTab, number> = {
-    all:          profile.products.length + newsItems.length,
-    coffee:       profile.products.filter((p) => p.category === 'coffee').length,
-    tea:          profile.products.filter((p) => p.category === 'tea').length,
-    equipment:    profile.products.filter((p) => p.category === 'equipment').length,
-    service:      profile.products.filter((p) => p.category === 'service').length,
-    tableware:    profile.products.filter((p) => p.category === 'tableware').length,
-    training:     profile.products.filter((p) => p.category === 'training').length,
-    consumables:  profile.products.filter((p) => p.category === 'consumables').length,
+    all:          liveProducts.length + newsItems.length,
+    coffee:       liveProducts.filter((p) => p.category === 'coffee').length,
+    tea:          liveProducts.filter((p) => p.category === 'tea').length,
+    equipment:    liveProducts.filter((p) => p.category === 'equipment').length,
+    service:      liveProducts.filter((p) => p.category === 'service').length,
+    tableware:    liveProducts.filter((p) => p.category === 'tableware').length,
+    training:     liveProducts.filter((p) => p.category === 'training').length,
+    consumables:  liveProducts.filter((p) => p.category === 'consumables').length,
     news:         newsItems.length,
     about:        0,
   };
 
-  // Строим гибридную сетку
-  const gridItems = buildExhibitorGrid(profile.products, newsItems, activeTab);
+  // Строим гибридную сетку (используем liveProducts для поддержки live-sync)
+  const gridItems = buildExhibitorGrid(liveProducts, newsItems, activeTab);
 
   // Blueprint-паттерн для фона контентной зоны
   const blueprintBg = {
@@ -2383,7 +3051,17 @@ export default function ExhibitorPageClient({ profile }: ExhibitorPageClientProp
 
   return (
     <>
-      <div className="mt-16 min-h-[calc(100vh-4rem)]" style={blueprintBg}>
+      {/* Dev Preview Mode Indicator */}
+      {testAsBuyerId && (
+        <div
+          className="fixed top-16 left-0 right-0 z-50 px-4 py-2 text-center text-sm font-medium text-white border-b"
+          style={{ backgroundColor: '#F26522' }}
+        >
+          Режим предпросмотра: Вы видите страницу как партнёр Алексей Сорокин
+        </div>
+      )}
+
+      <div className={`${testAsBuyerId ? 'mt-28' : 'mt-16'} min-h-[calc(100vh-4rem)]`} style={blueprintBg}>
 
         {/*
          * ── ГЛОБАЛЬНЫЙ ДВУХКОЛОНОЧНЫЙ КАРКАС ───────────────────────────────────
@@ -2400,12 +3078,23 @@ export default function ExhibitorPageClient({ profile }: ExhibitorPageClientProp
           {/* ── ЛЕВАЯ КОЛОНКА (flex-1): Header + Рекомендации + Табы + Сетка ── */}
           <div className="flex-1 min-w-0 w-full">
 
-            {/* 1. Шапка профиля */}
-            <ExhibitorHeader profile={profile} />
+            {/* 1. Шапка профиля — кнопка чата показывается только для visitor/exhibitor */}
+            <ExhibitorHeader
+              profile={profile}
+              onOpenChat={canUseChat ? () => setChatOpen(true) : undefined}
+            />
 
             {/* 2. «Экспонент рекомендует» */}
             {profile.recommendations && profile.recommendations.length > 0 && (
               <RecommendedPartnersBar recommendations={profile.recommendations} />
+            )}
+
+            {/* 2b. Последние новости экспонента — 3 карточки под рекомендациями */}
+            {newsItems.length > 0 && (
+              <ExhibitorNewsBlock
+                news={newsItems}
+                onOpenNews={handleOpenNews}
+              />
             )}
 
             {/* 3. Sticky-табы (прилипают под Header) */}
@@ -2439,58 +3128,52 @@ export default function ExhibitorPageClient({ profile }: ExhibitorPageClientProp
             </div>
           </div>
 
-          {/* ── ПРАВАЯ КОЛОНКА — sticky sidebar (только xl / ≥ 1280px) ──────────
-           *
-           * sticky top-16     — прилипает сразу под фиксированным Header.
-           * h-[calc(100vh-64px)] — высота = viewport минус header.
-           * overflow-y-auto   — автономный скролл сайдбара.
-           */}
-          <div
-            className={[
-              'hidden xl:block',
-              'w-[380px] flex-shrink-0',
-              'sticky top-6 self-start',
-              'h-[calc(100vh-64px)]',
-              'overflow-y-auto',
-              '[&::-webkit-scrollbar]:w-1.5',
-              '[&::-webkit-scrollbar-track]:bg-transparent',
-              '[&::-webkit-scrollbar-thumb]:bg-slate-200',
-              '[&::-webkit-scrollbar-thumb]:rounded-full',
-              'border-l border-[#0B2B5E]/10',
-            ].join(' ')}
-            style={{ backgroundColor: 'rgba(248,250,252,0.90)' }}
-          >
-            <div className="p-5 flex flex-col gap-3">
-              <ExhibitorSidebar
-                news={newsItems}
-                onOpenNews={handleOpenNews}
-                onUploadRequisites={() => setRequisitesOpen(true)}
-              />
-            </div>
-          </div>
-
-          {/* ── АДАПТИВНЫЙ САЙДБАР (только < xl / 1280px) ───────────────────── */}
-          <div className="flex xl:hidden w-full px-4 pb-8 pt-2">
-            <div className="w-full max-w-[480px]">
-              <ExhibitorSidebar
-                news={newsItems}
-                onOpenNews={handleOpenNews}
-                onUploadRequisites={() => setRequisitesOpen(true)}
-              />
-            </div>
-          </div>
-
         </div>
       </div>
 
       {/* ── Модальное окно карточки товара ──────────────────────────────────── */}
-      <ProductModal product={selectedProduct} onClose={handleCloseProduct} />
+      <ProductModal
+        product={selectedProduct}
+        onClose={handleCloseProduct}
+        onDealRequest={isOooTest ? handleDealRequest : undefined}
+        isReferralBuyer={isReferralBuyer}
+      />
+
+      {/* ── [Smart Contract] Deal Request Modal ─────────────────────────────── */}
+      {dealProduct && (
+        <DealRequestModal
+          product={dealProduct}
+          exhibitorSlug={profile.slug}
+          exhibitorName={profile.name}
+          isReferralBuyer={isReferralBuyer}
+          onClose={handleCloseDeal}
+        />
+      )}
 
       {/* ── Модальное окно новости ───────────────────────────────────────────── */}
       <ExhibitorArticleModal item={selectedNews} onClose={handleCloseNews} />
 
       {/* ── Smart Contract: модал загрузки реквизитов ────────────────────────── */}
       <UploadRequisitesModal open={requisitesOpen} onClose={() => setRequisitesOpen(false)} />
+
+      {/*
+       * ── B2BChatModal ──────────────────────────────────────────────────────
+       * Модальное окно делового обращения (Supabase INSERT → messages).
+       * Открывается только для ролей 'visitor' | 'exhibitor' (canUseChat).
+       *
+       * sender_id  = userId (auth.uid() из Server Component, безопасен)
+       * receiver_id = profile.id (exhibitors.id)
+       */}
+      {canUseChat && (
+        <B2BChatModal
+          isOpen={chatOpen}
+          onClose={() => setChatOpen(false)}
+          exhibitorId={profile.id}
+          exhibitorName={profile.name}
+          senderId={userId}
+          userRole={userRole}
+        />
+      )}
     </>
   );
 }

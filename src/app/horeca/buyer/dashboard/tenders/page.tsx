@@ -522,7 +522,7 @@ function CompletedTenderCard({ tender, onView }: CompletedTenderCardProps) {
                 {hasWinner ? (
                   <>
                     <div className="font-medium text-amber-700 text-sm leading-tight">
-                      🏆 Победитель
+                      Победитель
                     </div>
                     <div className="text-xs text-gray-500 truncate max-w-[180px]">
                       {tender.winnerName}
@@ -530,7 +530,7 @@ function CompletedTenderCard({ tender, onView }: CompletedTenderCardProps) {
                   </>
                 ) : (
                   <div className="font-medium text-gray-500 text-sm leading-tight">
-                    ⚪ Закрыто без выбора
+                    Закрыто без выбора
                   </div>
                 )}
               </div>

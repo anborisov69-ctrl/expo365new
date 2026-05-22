@@ -50,14 +50,14 @@ const PROMO_CONFIG: Record<
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const INDUSTRY_FILTERS: { id: IndustryTag; label: string; icon: string }[] = [
-  { id: 'all',             label: 'Все',           icon: '◼' },
-  { id: 'coffee',          label: 'Кофе',          icon: '☕' },
-  { id: 'tea',             label: 'Чай',           icon: '🍵' },
-  { id: 'equipment',       label: 'Оборудование',  icon: '⚙' },
-  { id: 'dishes',          label: 'Посуда',        icon: '🍽' },
-  { id: 'textile',         label: 'Текстиль',      icon: '👕' },
-  { id: 'food',            label: 'Продукты',      icon: '🥗' },
-  { id: 'cold-beverages',  label: 'Хол. напитки',  icon: '🧃' },
+  { id: 'all',             label: 'Все',           icon: '' },
+  { id: 'coffee',          label: 'Кофе',          icon: '' },
+  { id: 'tea',             label: 'Чай',           icon: '' },
+  { id: 'equipment',       label: 'Оборудование',  icon: '' },
+  { id: 'dishes',          label: 'Посуда',        icon: '' },
+  { id: 'textile',         label: 'Текстиль',      icon: '' },
+  { id: 'food',            label: 'Продукты',      icon: '' },
+  { id: 'cold-beverages',  label: 'Хол. напитки',  icon: '' },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════

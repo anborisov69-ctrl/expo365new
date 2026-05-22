@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UNIQUE_PRODUCT_BRANDS } from '@/data/productsData';
+import { useUnreadMessages } from '@/hooks/useMessagesRealtime';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -187,6 +188,11 @@ export default function AdminSidebar({ collapsed, onToggle }: AdminSidebarProps)
   const pathname = usePathname();
   const router   = useRouter();
 
+  // ── Счётчик непрочитанных сообщений (Realtime) ───────────────────────────
+  // Автоматически определяет exhibitorId через auth → exhibitor_users.
+  // Реалтайм-инкремент при каждом новом входящем сообщении.
+  const { count: unreadCount } = useUnreadMessages();
+
   // ── Nav sub-menu state ────────────────────────────────────────────────────
   const [openSubMenus, setOpenSubMenus] = useState<Record<string, boolean>>({
     '/horeca/admin/content': true,
@@ -307,20 +313,51 @@ export default function AdminSidebar({ collapsed, onToggle }: AdminSidebarProps)
               collapsed ? 'justify-center' : '',
             );
 
+            // Показываем оранжевую точку только для пункта «Сообщения»
+            const isMessagesItem = item.href === '/horeca/admin/messages';
+            const showUnreadDot  = isMessagesItem && unreadCount > 0;
+
             const itemContent = (
               <>
-                <Icon
-                  className={cn(
-                    'flex-shrink-0 w-5 h-5 transition-colors',
-                    (active || parentActive)
-                      ? 'text-[#0B2B5E]'
-                      : 'text-slate-400 group-hover:text-[#0B2B5E]',
+                {/*
+                 * Иконка с оранжевой точкой в collapsed-режиме.
+                 * В развёрнутом режиме — точка отображается рядом с лейблом.
+                 */}
+                <span className="relative flex-shrink-0">
+                  <Icon
+                    className={cn(
+                      'w-5 h-5 transition-colors',
+                      (active || parentActive)
+                        ? 'text-[#0B2B5E]'
+                        : 'text-slate-400 group-hover:text-[#0B2B5E]',
+                    )}
+                  />
+                  {/* Оранжевая точка поверх иконки (только в collapsed-режиме) */}
+                  {showUnreadDot && collapsed && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-white"
+                      style={{ backgroundColor: '#F26522' }}
+                      aria-label={`Непрочитанных: ${unreadCount}`}
+                    />
                   )}
-                />
+                </span>
+
                 {!collapsed && (
                   <>
                     <span className="flex-1 text-left leading-none truncate">{item.label}</span>
-                    {hasSubItems && (
+
+                    {/* Оранжевый badge с числом непрочитанных (развёрнутый режим) */}
+                    {showUnreadDot && (
+                      <span
+                        className="flex-shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black leading-none text-white"
+                        style={{ backgroundColor: '#F26522' }}
+                        aria-label={`Непрочитанных сообщений: ${unreadCount}`}
+                      >
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+
+                    {hasSubItems && !showUnreadDot && (
                       <span className="flex-shrink-0">
                         {subMenuOpen
                           ? <ChevronDown className="w-4 h-4 text-slate-400" />

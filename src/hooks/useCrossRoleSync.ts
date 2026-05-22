@@ -15,11 +15,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-// Конфигурация Supabase (должна быть в .env.local)
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co'
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key'
+import { getSupabaseClient } from '@/lib/supabase'
 
 // Типы событий для cross-role синхронизации
 export type SyncEventType = 
@@ -110,13 +106,13 @@ export function useCrossRoleSync({
   const [eventCount, setEventCount] = useState(0)
   const [lastEvent, setLastEvent] = useState<SyncEvent | null>(null)
 
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
+  const supabaseRef = useRef<ReturnType<typeof getSupabaseClient> | null>(null)
   const subscriptionRef = useRef<any>(null)
 
   // Инициализация Supabase клиента
   useEffect(() => {
     if (!supabaseRef.current) {
-      supabaseRef.current = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      supabaseRef.current = getSupabaseClient()
     }
   }, [])
 
@@ -149,7 +145,8 @@ export function useCrossRoleSync({
       }
 
       // Также отправляем в Supabase для persistence и cross-device синхронизации
-      const { error } = await supabaseRef.current
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabaseRef.current as any)
         .from('sync_events')
         .insert({
           type,

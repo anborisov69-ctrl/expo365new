@@ -30,6 +30,12 @@ export function DevAuthToggle({ className = '' }: DevAuthToggleProps) {
     router.push('/horeca/buyer/dashboard');
   };
 
+  const handlePrivatePersonLogin = () => {
+    setTestRole('PRIVATE_PERSON');
+    // Редирект в HR Hub (или на главную)
+    router.push('/horeca/hr-hub');
+  };
+
   /**
    * БАНК — финансовый партнёр платформы.
    * Перенаправляет в кабинет управления финансовыми плашками.
@@ -69,7 +75,14 @@ export function DevAuthToggle({ className = '' }: DevAuthToggleProps) {
           >
             Войти как ПОСЕТИТЕЛЬ
           </button>
-          {/* 🟢 Вход в кабинет банка-партнёра */}
+          {/* 🟣 Вход как частное лицо (соискатель) */}
+          <button
+            onClick={handlePrivatePersonLogin}
+            className="px-4 py-2 text-sm bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-md transition-colors font-medium"
+          >
+            Я частное лицо
+          </button>
+          {/*  Вход в кабинет банка-партнёра */}
           <button
             onClick={handleBankLogin}
             className="px-4 py-2 text-sm bg-[#27AE60] hover:bg-[#219150] text-white rounded-md transition-colors font-medium"
